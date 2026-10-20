@@ -182,7 +182,7 @@ export async function handle(req, res) {
   try {
     db = await database();
     if (url.pathname.startsWith('/api/')) {
-      if (url.pathname === '/api/health') return send(res, 200, { ok: true, app: 'Stockly' });
+      if (url.pathname === '/api' || url.pathname === '/api/' || url.pathname === '/api/health') return send(res, 200, { ok: true, app: 'Stockly' });
       if (url.pathname === '/api/auth/status' && req.method==='GET') {
         const user=currentUser(req,db);
         return send(res,200,{user:user?publicUser(user):null,setupNeeded:!db.users.some(u=>u.role==='admin'),roles:['admin','manager','staff','user'],pushPublicKey:db.vapidKeys.publicKey});
@@ -758,3 +758,6 @@ if (!process.env.VERCEL) {
   const server = http.createServer(handle);
   server.listen(port,'0.0.0.0',()=>console.log(`Stockly berjalan di http://localhost:${port}`));
 }
+
+export default handle;
+
