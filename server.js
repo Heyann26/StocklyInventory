@@ -67,35 +67,42 @@ async function database() {
   };
 
   if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    const endpoint = `${process.env.SUPABASE_URL.replace(/\/$/, '')}/rest/v1/stockly_state?id=eq.main&select=payload`;
-    const headers = { apikey: process.env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`, 'Content-Type': 'application/json' };
-    const response = await fetch(endpoint, { headers, cache: 'no-store' });
-    if (!response.ok) throw new Error(`Database Supabase gagal dibaca (${response.status}).`);
-    const rows = await response.json();
-    let db = rows[0]?.payload;
-    if (!db) db = structuredClone(seed);
-    db.movements ||= []; db.users ||= []; db.authSessions ||= []; db.feedback ||= []; db.errors ||= []; db.pushSubscriptions ||= []; db.approvals ||= structuredClone(seed.approvals);
-    for (const product of db.products) {
-      product.userId ||= 'USR-ADMIN';
-      product.minStock ??= 10;
-      if (!product.expiryDate) {
-        const days = product.id === 'PRD-004' ? 12 : product.id === 'PRD-007' ? 19 : product.id === 'PRD-001' ? 22 : product.id === 'PRD-002' ? 48 : 120;
-        product.expiryDate = new Date(Date.now() + 86400000 * days).toISOString().slice(0, 10);
+    try {
+      const endpoint = `${process.env.SUPABASE_URL.replace(/\/$/, '')}/rest/v1/stockly_state?id=eq.main&select=payload`;
+      const headers = { apikey: process.env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`, 'Content-Type': 'application/json' };
+      const response = await fetch(endpoint, { headers, cache: 'no-store' });
+      if (response.ok) {
+        const rows = await response.json();
+        let db = rows[0]?.payload;
+        if (!db) db = structuredClone(seed);
+        db.movements ||= []; db.users ||= []; db.authSessions ||= []; db.feedback ||= []; db.errors ||= []; db.pushSubscriptions ||= []; db.approvals ||= structuredClone(seed.approvals);
+        for (const product of db.products) {
+          product.userId ||= 'USR-ADMIN';
+          product.minStock ??= 10;
+          if (!product.expiryDate) {
+            const days = product.id === 'PRD-004' ? 12 : product.id === 'PRD-007' ? 19 : product.id === 'PRD-001' ? 22 : product.id === 'PRD-002' ? 48 : 120;
+            product.expiryDate = new Date(Date.now() + 86400000 * days).toISOString().slice(0, 10);
+          }
+        }
+        for (const s of db.sessions) s.userId ||= 'USR-ADMIN';
+        for (const a of db.activities) a.userId ||= 'USR-ADMIN';
+        for (const a of db.approvals) a.userId ||= 'USR-ADMIN';
+        for (const m of db.movements) m.userId ||= 'USR-ADMIN';
+        if (!db.vapidKeys) { const ecdh=createECDH('prime256v1'); ecdh.generateKeys(); db.vapidKeys={publicKey:ecdh.getPublicKey().toString('base64url'),privateKey:ecdh.getPrivateKey().toString('base64url')}; }
+        syncAdminUsers(db);
+        if (!db.users.some(user=>user.role==='admin')) db.setupToken ||= randomBytes(18).toString('base64url');
+        await save(db).catch(() => {});
+        return db;
+      } else {
+        console.warn(`Supabase belum siap (${response.status}), menggunakan penyimpanan lokal.`);
       }
+    } catch (e) {
+      console.warn('Supabase fetch error:', e.message);
     }
-    for (const s of db.sessions) s.userId ||= 'USR-ADMIN';
-    for (const a of db.activities) a.userId ||= 'USR-ADMIN';
-    for (const a of db.approvals) a.userId ||= 'USR-ADMIN';
-    for (const m of db.movements) m.userId ||= 'USR-ADMIN';
-    if (!db.vapidKeys) { const ecdh=createECDH('prime256v1'); ecdh.generateKeys(); db.vapidKeys={publicKey:ecdh.getPublicKey().toString('base64url'),privateKey:ecdh.getPrivateKey().toString('base64url')}; }
-    syncAdminUsers(db);
-    if (!db.users.some(user=>user.role==='admin')) db.setupToken ||= randomBytes(18).toString('base64url');
-    await save(db);
-    return db;
   }
   let db;
   try { db = JSON.parse(await fs.readFile(dataFile, 'utf8')); }
-  catch { await fs.mkdir(dataDir, { recursive: true }); db = structuredClone(seed); }
+  catch { await fs.mkdir(dataDir, { recursive: true }).catch(() => {}); db = structuredClone(seed); }
   db.movements ||= []; db.users ||= []; db.authSessions ||= []; db.feedback ||= []; db.errors ||= []; db.pushSubscriptions ||= []; db.approvals ||= structuredClone(seed.approvals);
   for (const product of db.products) {
     product.userId ||= 'USR-ADMIN';
@@ -112,18 +119,27 @@ async function database() {
   if (!db.vapidKeys) { const ecdh=createECDH('prime256v1'); ecdh.generateKeys(); db.vapidKeys={publicKey:ecdh.getPublicKey().toString('base64url'),privateKey:ecdh.getPrivateKey().toString('base64url')}; }
   syncAdminUsers(db);
   if (!db.users.some(user=>user.role==='admin')) db.setupToken ||= randomBytes(18).toString('base64url');
-  await save(db);
+  await save(db).catch(() => {});
   return db;
 }
 async function save(db) {
   if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    const base = process.env.SUPABASE_URL.replace(/\/$/, '');
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const response = await fetch(`${base}/rest/v1/stockly_state?on_conflict=id`, { method: 'POST', headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ id: 'main', payload: db, updated_at: new Date().toISOString() }) });
-    if (!response.ok) throw new Error(`Database Supabase gagal disimpan (${response.status}).`);
-    return;
+    try {
+      const base = process.env.SUPABASE_URL.replace(/\/$/, '');
+      const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      const response = await fetch(`${base}/rest/v1/stockly_state?on_conflict=id`, { method: 'POST', headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ id: 'main', payload: db, updated_at: new Date().toISOString() }) });
+      if (response.ok) return;
+      console.warn(`Supabase save response: ${response.status}`);
+    } catch (e) {
+      console.warn('Supabase save error:', e.message);
+    }
   }
-  await fs.mkdir(dataDir, { recursive: true }); await fs.writeFile(dataFile, JSON.stringify(db, null, 2));
+  try {
+    await fs.mkdir(dataDir, { recursive: true });
+    await fs.writeFile(dataFile, JSON.stringify(db, null, 2));
+  } catch (err) {
+    console.warn('Local save warning:', err.message);
+  }
 }
 function send(res, status, body, type='application/json; charset=utf-8', extra={}) { res.writeHead(status, { 'Content-Type': type, 'Cache-Control':'no-store', ...extra }); res.end(type.startsWith('application/json') ? JSON.stringify(body) : body); }
 async function body(req) { let raw=''; for await (const chunk of req) { raw+=chunk; if(raw.length>1_000_000) throw Object.assign(new Error('Permintaan terlalu besar.'),{status:413}); } return raw ? JSON.parse(raw) : {}; }
