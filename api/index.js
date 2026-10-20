@@ -1,4 +1,4 @@
-import { handle } from './_server.js';
+import { handle } from '../lib/server.js';
 
 export default async function handler(req, res) {
   try {

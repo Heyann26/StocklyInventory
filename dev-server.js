@@ -1,5 +1,5 @@
 import http from 'node:http';
-import { handle, database } from './api/_server.js';
+import { handle, database } from './lib/server.js';
 
 const port = Number(process.env.PORT || 3000);
 
