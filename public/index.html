@@ -1,0 +1,907 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#f6f8fc"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="apple-touch-icon" href="/icon.svg">
+  <meta name="description" content="Stockly, sistem pencatatan stock opname dan inventaris yang mudah digunakan.">
+  <title>Stockly — Stock Opname</title><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon.svg" type="image/svg+xml"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#f0efff', 100: '#e0ddff', 500: '#6254d9', 600: '#5146c4', 700: '#4036ab' }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="/styles.css"></head>
+<body class="auth-required">
+<section id="authScreen" aria-label="Masuk ke Stockly">
+  <div class="auth-card">
+    <a class="brand auth-brand" href="#">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+      </span>
+      <div>
+        <span class="text-gray-900 font-bold tracking-tight text-xl block">Stockly<span class="text-red-600">.</span></span>
+        <span class="text-[11px] font-bold tracking-widest text-gray-500 uppercase block -mt-1">Inventory</span>
+      </div>
+    </a>
+    <div class="auth-copy">
+      <h1 id="authTitle">Selamat datang di Stockly</h1>
+      <p id="authSubtitle">Masuk ke akun Anda untuk mengelola inventaris dan stock opname.</p>
+    </div>
+    <div class="auth-tabs">
+      <button type="button" class="auth-tab selected" data-auth-mode="login">Masuk</button>
+      <button type="button" class="auth-tab" data-auth-mode="register">Daftar akun</button>
+    </div>
+    <p id="authMessage" class="auth-message" role="alert"></p>
+    <form id="authForm" class="auth-form">
+      <label id="authNameWrap" hidden>Nama lengkap<input name="name" autocomplete="name" placeholder="Nama Anda"></label>
+      <label>Email<input name="email" type="email" autocomplete="username" required placeholder="nama@email.com"></label>
+      <label>
+        <span>Kata sandi</span>
+        <input name="password" type="password" autocomplete="current-password" required minlength="8" placeholder="Minimal 8 karakter">
+      </label>
+      <div id="forgotPasswordWrap" class="flex justify-end -mt-1">
+        <button type="button" id="forgotPasswordBtn" class="text-xs text-red-600 hover:text-red-700 font-semibold bg-transparent border-0 p-0 cursor-pointer">Lupa kata sandi?</button>
+      </div>
+      <button class="button primary auth-submit" id="authSubmit">Masuk ke Dashboard</button>
+    </form>
+
+    <!-- Form Lupa Kata Sandi (Kirim Kode & Reset) -->
+    <form id="forgotForm" class="auth-form" hidden>
+      <div id="forgotStep1">
+        <label>Email akun Anda<input id="forgotEmailInput" type="email" autocomplete="email" required placeholder="nama@email.com"></label>
+        <button type="button" class="button primary auth-submit mt-2" id="btnSendResetCode">Kirim Kode Verifikasi</button>
+      </div>
+      <div id="forgotStep2" hidden class="space-y-3">
+        <div class="p-2.5 bg-green-50 border border-green-200 text-green-800 rounded text-xs" id="forgotCodeNotice">
+          Kode verifikasi 6 digit telah dikirim. Masukkan kode tersebut di bawah.
+        </div>
+        <label>Kode Verifikasi (6 Digit)<input id="forgotCodeInput" type="text" maxlength="6" required placeholder="Contoh: 123456" class="font-bold text-center tracking-widest"></label>
+        <label>Kata Sandi Baru<input id="forgotNewPasswordInput" type="password" required minlength="8" placeholder="Minimal 8 karakter"></label>
+        <button type="button" class="button primary auth-submit" id="btnSubmitNewPassword">Simpan Kata Sandi Baru</button>
+      </div>
+      <button type="button" class="auth-back text-xs font-semibold text-gray-500 hover:text-gray-800 mt-2 cursor-pointer border-0 bg-transparent" id="backToLoginFromForgot">← Kembali ke Halaman Masuk</button>
+    </form>
+
+    <div id="adminSetupCallout" class="setup-callout" hidden>
+      <span>Administrator pertama?</span>
+      <button id="showAdminSetup" type="button">Buat akun admin</button>
+    </div>
+    <form id="adminSetupForm" class="auth-form setup-form" hidden>
+      <div class="setup-note">Kode setup ditampilkan di Terminal saat server dijalankan pertama kali.</div>
+      <label>Kode setup admin<input name="token" required autocomplete="off"></label>
+      <label>Nama administrator<input name="name" required autocomplete="name"></label>
+      <label>Email administrator<input name="email" type="email" required autocomplete="email"></label>
+      <label>Kata sandi admin<input name="password" type="password" required minlength="10" autocomplete="new-password" placeholder="Minimal 10 karakter"></label>
+      <button class="button primary auth-submit">Buat Akun Admin</button>
+      <button class="auth-back" type="button" id="backToLogin">Kembali ke masuk</button>
+    </form>
+    <p class="auth-footnote">Sistem manajemen stok & opname aman.</p>
+  </div>
+  <div class="auth-decoration">
+    <span class="auth-decoration-badge">Platform Inventaris Terpadu</span>
+    <h2>Manajemen Stok Rapi dan Akurat.</h2>
+    <p>Kelola pergudangan, stock opname fisik, pelaporan selisih, dan isolasi data per akun dalam satu sistem.</p>
+    <div class="auth-feature-list">
+      <div class="auth-feature-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <div>
+          <strong>Stock Opname Terstruktur</strong>
+          <span>Hitung stok fisik dengan barcode scanner dan rekonsiliasi selisih instan.</span>
+        </div>
+      </div>
+      <div class="auth-feature-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+        <div>
+          <strong>Isolasi Data Aman (Multi-Tenant)</strong>
+          <span>Setiap akun memiliki database inventaris, riwayat audit, dan metrik tersendiri.</span>
+        </div>
+      </div>
+      <div class="auth-feature-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        <div>
+          <strong>Reset Modular & Audit Trail</strong>
+          <span>Opsi reset granular per kategori data dengan konfirmasi keamanan berlapis.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Zoho Inventory Dark Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <a class="brand" href="#">
+    <span class="brand-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+    </span>
+    <div>
+      <span class="text-white font-bold tracking-tight text-base block">Stockly<span class="text-red-500">.</span></span>
+      <span class="text-[11px] font-bold tracking-widest text-gray-400 uppercase block -mt-1">Inventory</span>
+    </div>
+  </a>
+
+  <nav class="nav">
+    <p class="nav-label">MENU UTAMA</p>
+    <a class="nav-link active" href="#overview" data-page="overview">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a class="nav-link" href="#products" data-page="products">
+      <svg viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 16l9 5 9-5"/></svg>
+      <span>Inventory</span>
+      <span class="nav-count" id="navProductCount">0</span>
+    </a>
+    <a class="nav-link" href="#sessions" data-page="sessions">
+      <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h3M8 17h6"/></svg>
+      <span>Stock Opname</span>
+      <span class="nav-count accent" id="navSessionCount">0</span>
+    </a>
+    <a class="nav-link" href="#reports" data-page="reports">
+      <svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h17M8 15l4-4 3 2 5-7"/><path d="M16 6h4v4"/></svg>
+      <span>Reports</span>
+    </a>
+    <p class="nav-label mt-2">OPERASIONAL</p>
+    <a class="nav-link" href="#feedback" data-page="feedback">
+      <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+      <span>Feedback</span>
+    </a>
+    <a class="nav-link admin-only" href="#admin" data-page="admin" hidden>
+      <svg viewBox="0 0 24 24"><path d="M12 3 20 6v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+      <span>Admin</span>
+      <span class="nav-count accent" id="adminAlertCount">0</span>
+    </a>
+    <a class="nav-link" href="#settings" data-page="settings">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.4.8l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.4-.8l-1.7.6-1.4-2.4 1.4-1.1a8 8 0 0 1 0-1.6L6.5 12.4l1.4-2.4 1.7.6A8 8 0 0 1 11 9.8l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.4.8l1.7-.6 1.4 2.4-1.4 1.1a8 8 0 0 1-.1 1.5Z"/></svg>
+      <span>Pengaturan</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-bottom">
+    <div class="profile">
+      <div class="avatar" id="sidebarAvatar">ST</div>
+      <div class="profile-copy">
+        <strong id="sidebarUserName">Pengguna</strong>
+        <small id="sidebarUserRole">Akun aktif</small>
+      </div>
+      <button class="logout-quick" id="sidebarLogout" type="button" aria-label="Keluar dari akun" title="Keluar">
+        <svg viewBox="0 0 24 24"><path d="M10 17l5-5-5-5M15 12H3"/><path d="M12 3h6a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-6"/></svg>
+      </button>
+    </div>
+  </div>
+</aside>
+
+<main class="main">
+  <!-- Zoho Inventory Topbar Header -->
+  <header class="topbar">
+    <button class="mobile-menu" id="mobileMenu" aria-label="Buka menu">
+      <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <div class="flex items-center gap-3">
+      <!-- Quick Red Add Button -->
+      <button type="button" class="w-7 h-7 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center font-bold text-sm transition shrink-0" id="topQuickAdd" title="Tambah Produk">
+        <svg class="w-4 h-4" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <!-- History Button -->
+      <button type="button" class="w-7 h-7 rounded text-gray-500 hover:text-gray-800 hover:bg-gray-100 flex items-center justify-center transition shrink-0" title="Riwayat" data-page="reports">
+        <svg class="w-4 h-4" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 14 14"/></svg>
+      </button>
+      <!-- Search Input -->
+      <div class="search-box">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg>
+        <input id="globalSearchInput" placeholder="Cari di inventaris...">
+      </div>
+    </div>
+
+    <!-- Right Header Controls -->
+    <div class="top-actions">
+      <!-- Workspace Selector -->
+      <div class="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded cursor-pointer hover:bg-gray-100" id="topWorkspaceSwitcher">
+        <span id="topWorkspaceName">Stockly Workspace</span>
+        <svg class="w-3.5 h-3.5 text-gray-400" viewBox="0 0 20 20"><path d="m6 8 4 4 4-4"/></svg>
+      </div>
+
+      <!-- Notification Bell -->
+      <button class="icon-button notification" id="notificationButton" aria-label="Lihat produk stok menipis" title="Peringatan Stok & Notifikasi">
+        <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+        <i></i>
+      </button>
+
+      <!-- Settings Shortcut -->
+      <button class="icon-button" id="topSettingsBtn" data-page="settings" title="Pengaturan Sistem" aria-label="Pengaturan">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.4.8l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.4-.8l-1.7.6-1.4-2.4 1.4-1.1a8 8 0 0 1 0-1.6L6.5 12.4l1.4-2.4 1.7.6A8 8 0 0 1 11 9.8l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.4.8l1.7-.6 1.4 2.4-1.4 1.1a8 8 0 0 1-.1 1.5Z"/></svg>
+      </button>
+
+      <!-- User Avatar -->
+      <div class="top-avatar" id="topUserAvatar" title="Akun Pengguna">AR</div>
+    </div>
+  </header>
+
+  <!-- DASHBOARD OVERVIEW PAGE (Zoho Inventory Style) -->
+  <section class="page active-page" id="page-overview">
+    <!-- Controls Bar: Location Filter, Date Presets, and Quick Actions -->
+    <div class="bg-white border border-gray-200 rounded-lg p-3 mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
+          <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span>Lokasi:</span>
+          <select id="overviewLocationFilter" class="bg-gray-50 border border-gray-200 text-gray-900 text-xs font-medium rounded px-2.5 py-1 outline-none">
+            <option value="">Semua Lokasi</option>
+          </select>
+        </div>
+        <div class="flex items-center bg-gray-100 p-0.5 rounded text-xs" id="datePresetGroup">
+          <button type="button" class="px-2.5 py-1 rounded bg-white text-gray-900 font-semibold" data-range="today">Hari Ini</button>
+          <button type="button" class="px-2.5 py-1 rounded text-gray-600 hover:text-gray-900" data-range="7d">7 Hari</button>
+          <button type="button" class="px-2.5 py-1 rounded text-gray-600 hover:text-gray-900" data-range="month">Bulan Ini</button>
+          <button type="button" class="px-2.5 py-1 rounded text-gray-600 hover:text-gray-900" data-range="ytd">YTD</button>
+        </div>
+        <div class="hidden sm:flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded px-2 py-1 text-xs">
+          <input type="date" id="dateFilterStart" class="bg-transparent text-xs text-gray-700 outline-none" title="Tanggal Mulai">
+          <span class="text-gray-400">-</span>
+          <input type="date" id="dateFilterEnd" class="bg-transparent text-xs text-gray-700 outline-none" title="Tanggal Selesai">
+          <button type="button" id="btnDateResetToday" class="text-[11px] font-semibold text-red-600 hover:text-red-700 ml-1 px-1 rounded bg-red-50">Reset</button>
+        </div>
+      </div>
+
+      <!-- Quick Action Pills -->
+      <div class="flex items-center gap-1.5 flex-wrap">
+        <button type="button" id="quickActionScan" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded">
+          <svg class="w-3.5 h-3.5 text-gray-500" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
+          Scan Barcode
+        </button>
+        <button type="button" id="quickActionOpname" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded" data-action="new-session">
+          <svg class="w-3.5 h-3.5 text-gray-500" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+          Stock Opname
+        </button>
+        <button type="button" id="quickActionAddProduct" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Tambah Produk
+        </button>
+        <button type="button" id="quickActionReport" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded" data-page="reports">
+          <svg class="w-3.5 h-3.5 text-gray-500" viewBox="0 0 24 24"><path d="M4 19V5M4 19h17M8 15l4-4 3 2 5-7"/></svg>
+          Laporan
+        </button>
+        <button type="button" id="quickActionReset" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded" title="Reset data modular">
+          <svg class="w-3.5 h-3.5 text-red-600" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+          Reset Data
+        </button>
+      </div>
+    </div>
+
+    <!-- ROW 1: Zoho Inventory Top Section -->
+    <!-- Left: Sales Activity (4-segment KPI) | Right: Inventory Summary -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+      <!-- SALES ACTIVITY CARD (Col span 2) -->
+      <div class="lg:col-span-2 bg-white border border-gray-200 rounded-lg p-5">
+        <div class="mb-4">
+          <h2 class="text-sm font-bold text-gray-900 tracking-tight">Aktivitas Penjualan &amp; Distribusi</h2>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
+          <!-- 1. SIAP DIKEMAS -->
+          <div class="py-2 sm:py-0 sm:px-4 first:pl-0 text-center flex flex-col items-center justify-center">
+            <div class="text-2xl font-bold text-sky-600 tracking-tight" id="statChecked">0</div>
+            <div class="text-[11px] text-gray-400 font-medium -mt-0.5">Unit</div>
+            <div class="flex items-center gap-1 text-[11px] font-semibold text-gray-600 mt-2">
+              <svg class="w-3.5 h-3.5 text-gray-400" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="9 12 11 14 15 10"/></svg>
+              <span class="tracking-wide text-[11px]">Siap Dikemas</span>
+            </div>
+          </div>
+
+          <!-- 2. SIAP DIKIRIM -->
+          <div class="py-2 sm:py-0 sm:px-4 text-center flex flex-col items-center justify-center">
+            <div class="text-2xl font-bold text-red-600 tracking-tight" id="statLow">0</div>
+            <div class="text-[11px] text-gray-400 font-medium -mt-0.5">Paket</div>
+            <div class="flex items-center gap-1 text-[11px] font-semibold text-gray-600 mt-2">
+              <svg class="w-3.5 h-3.5 text-gray-400" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 14 14"/></svg>
+              <span class="tracking-wide text-[11px]">Siap Dikirim</span>
+            </div>
+          </div>
+
+          <!-- 3. DALAM PENGIRIMAN -->
+          <div class="py-2 sm:py-0 sm:px-4 text-center flex flex-col items-center justify-center">
+            <div class="text-2xl font-bold text-emerald-600 tracking-tight" id="statSessions">0</div>
+            <div class="text-[11px] text-gray-400 font-medium -mt-0.5">Paket</div>
+            <div class="flex items-center gap-1 text-[11px] font-semibold text-gray-600 mt-2">
+              <svg class="w-3.5 h-3.5 text-gray-400" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+              <span class="tracking-wide text-[11px]">Dalam Pengiriman</span>
+            </div>
+          </div>
+
+          <!-- 4. FAKTUR DITERBITKAN -->
+          <div class="py-2 sm:py-0 sm:px-4 last:pr-0 text-center flex flex-col items-center justify-center">
+            <div class="text-2xl font-bold text-sky-600 tracking-tight" id="statToBeInvoiced">0</div>
+            <div class="text-[11px] text-gray-400 font-medium -mt-0.5">Faktur</div>
+            <div class="flex items-center gap-1 text-[11px] font-semibold text-gray-600 mt-2">
+              <svg class="w-3.5 h-3.5 text-gray-400" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <span class="tracking-wide text-[11px]">Faktur Diterbitkan</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- INVENTORY SUMMARY CARD (Col span 1) -->
+      <div class="bg-white border border-gray-200 rounded-lg p-5 flex flex-col justify-between">
+        <div class="mb-3">
+          <h2 class="text-sm font-bold text-gray-900 tracking-tight">Ringkasan Stok Inventaris</h2>
+        </div>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between p-2.5 bg-gray-50 border border-gray-100 rounded">
+            <span class="text-[11px] font-bold text-gray-600 uppercase tracking-wide">STOK FISIK TERSEDIA</span>
+            <span class="text-base font-bold text-gray-900 tabular-nums" id="statAvailable">0</span>
+          </div>
+          <div class="flex items-center justify-between p-2.5 bg-gray-50 border border-gray-100 rounded">
+            <span class="text-[11px] font-bold text-gray-600 uppercase tracking-wide">PESANAN MENUNGGU MASUK</span>
+            <span class="text-base font-bold text-gray-900 tabular-nums" id="statToBeReceived">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 2: Zoho Inventory Middle Section -->
+    <!-- Left: PRODUCT DETAILS (with Donut) | Right: TOP SELLING ITEMS -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+      <!-- PRODUCT DETAILS CARD -->
+      <div class="bg-white border border-gray-200 rounded-lg p-5">
+        <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
+          <h2 class="text-xs font-bold text-gray-700">Detail Produk</h2>
+          <span class="text-xs text-gray-400 font-medium">Status &amp; Akurasi</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+          <!-- Details list -->
+          <div class="space-y-2.5 text-xs">
+            <div class="flex items-center justify-between">
+              <span class="text-red-600 font-medium">Stok Menipis</span>
+              <strong class="text-red-600 font-bold tabular-nums text-sm" id="prodLowStock">0</strong>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-gray-600">Kategori Produk</span>
+              <strong class="text-gray-900 font-bold tabular-nums text-sm" id="prodAllGroups">0</strong>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-gray-600">Total Produk</span>
+              <strong class="text-gray-900 font-bold tabular-nums text-sm" id="statProducts">0</strong>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-red-600 font-medium flex items-center gap-1">
+                Belum Dikonfirmasi
+                <svg class="w-3 h-3 text-red-400" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </span>
+              <strong class="text-red-600 font-bold tabular-nums text-sm" id="prodUnconfirmed">0</strong>
+            </div>
+          </div>
+
+          <!-- Donut Ring: Active Items -->
+          <div class="flex flex-col items-center justify-center p-2 border-t sm:border-t-0 sm:border-l border-gray-100">
+            <div class="text-[11px] font-semibold text-gray-500 mb-2">Item Aktif</div>
+            <div class="relative w-24 h-24 flex items-center justify-center" id="zohoDonutWrap">
+              <svg class="w-24 h-24 -rotate-90 transform" viewBox="0 0 96 96">
+                <circle cx="48" cy="48" r="38" fill="none" stroke="#f1f5f9" stroke-width="10" />
+                <circle id="zohoDonutArc" cx="48" cy="48" r="38" fill="none" stroke="#059669" stroke-width="10" stroke-dasharray="238.76" stroke-dashoffset="69.24" stroke-linecap="round" class="transition-[stroke-dashoffset] duration-300" />
+              </svg>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <span class="text-sm font-bold text-gray-900 tabular-nums" id="zohoActivePct">71%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOP SELLING ITEMS CARD -->
+      <div class="bg-white border border-gray-200 rounded-lg p-5 flex flex-col justify-between">
+        <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
+          <h2 class="text-xs font-bold text-gray-700">Produk Terlaris</h2>
+          <select class="bg-gray-50 border border-gray-200 text-gray-600 text-xs rounded px-2 py-0.5 outline-none" id="topSellingRangeSelect">
+            <option>Bulan Ini</option>
+            <option>Tahun Ini</option>
+            <option>Semua Waktu</option>
+          </select>
+        </div>
+        <div class="grid grid-cols-2 gap-3" id="topSellingContainer">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 3: Zoho Inventory Lower Section -->
+    <!-- Left: PURCHASE ORDER / SESI OPNAME | Right: SALES ORDER / MUTASI TRANSAKSI -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+      <!-- PURCHASE ORDER / SESI OPNAME (Col span 1) -->
+      <div class="bg-white border border-gray-200 rounded-lg p-5">
+        <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
+          <div>
+            <h2 class="text-xs font-bold text-gray-700">Sesi Opname Berjalan</h2>
+            <p class="text-[11px] text-gray-400">Progres pencatatan fisik stok di gudang</p>
+          </div>
+          <select class="bg-gray-50 border border-gray-200 text-gray-600 text-xs rounded px-2 py-0.5 outline-none">
+            <option>Bulan Ini</option>
+            <option>Bulan Lalu</option>
+          </select>
+        </div>
+        <div class="space-y-3" id="sessionList">
+          <!-- Dynamically populated sessions -->
+        </div>
+      </div>
+
+      <!-- SALES ORDER / MUTASI STOK (Col span 2) -->
+      <div class="lg:col-span-2 bg-white border border-gray-200 rounded-lg p-5">
+        <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-3">
+          <div>
+            <h2 class="text-xs font-bold text-gray-700">Status Pemenuhan Pesanan (Sales Order)</h2>
+            <p class="text-[11px] text-gray-400">Ringkasan status mutasi dan transaksi inventaris</p>
+          </div>
+          <button type="button" class="text-xs font-semibold text-red-600 hover:text-red-700" data-page="products">Katalog Lengkap</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Kanal Distribusi</th>
+                <th class="text-right">Draft</th>
+                <th class="text-right">Dikonfirmasi</th>
+                <th class="text-right">Dikemas</th>
+                <th class="text-right">Dikirim</th>
+              </tr>
+            </thead>
+            <tbody id="salesOrderRows">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 4: Operational Center: Expiring Soon, Pending Approvals, & Activity Audit Trail -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+      <!-- Left 2 Cols: Expiring Soon & Pending Approvals -->
+      <div class="lg:col-span-2 space-y-4">
+        <!-- Expiring Soon Widget -->
+        <div class="bg-white border border-gray-200 rounded-lg p-4">
+          <div class="flex items-center justify-between pb-2 border-b border-gray-100 mb-3">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+              <h3 class="text-xs font-bold text-gray-900 tracking-wide">Peringatan Kedaluwarsa</h3>
+              <span id="expiringCountBadge" class="px-2 py-0.5 text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 rounded">0 Produk</span>
+            </div>
+            <div class="flex items-center gap-1 text-xs">
+              <button type="button" id="expFilterAll" class="px-2 py-0.5 rounded bg-gray-100 text-gray-800 font-medium text-[11px]">Semua (&lt;60h)</button>
+              <button type="button" id="expFilterUrgent" class="px-2 py-0.5 rounded text-gray-500 hover:bg-gray-50 text-[11px]">Mendesak (&lt;30h)</button>
+            </div>
+          </div>
+          <div id="expiringProductList" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
+        </div>
+
+        <!-- Pending Approvals Widget -->
+        <div class="bg-white border border-gray-200 rounded-lg p-4">
+          <div class="flex items-center justify-between pb-2 border-b border-gray-100 mb-3">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-sky-500"></span>
+              <h3 class="text-xs font-bold text-gray-900 tracking-wide">Persetujuan Tertunda</h3>
+              <span id="pendingApprovalsBadge" class="px-2 py-0.5 text-[11px] font-bold bg-sky-50 text-sky-700 border border-sky-200 rounded">0 Menunggu</span>
+            </div>
+          </div>
+          <div id="pendingApprovalsList" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
+        </div>
+      </div>
+
+      <!-- Right 1 Col: Activity Audit Trail -->
+      <div class="bg-white border border-gray-200 rounded-lg p-4 flex flex-col">
+        <div class="flex items-center justify-between pb-2 border-b border-gray-100 mb-3">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <h3 class="text-xs font-bold text-gray-900 tracking-wide">Log Aktivitas Audit</h3>
+          </div>
+          <button class="text-[11px] font-semibold text-red-600 hover:text-red-700" data-page="reports">Riwayat</button>
+        </div>
+        <div id="activityAuditList" class="space-y-3 max-h-[360px] overflow-y-auto pr-1"></div>
+      </div>
+    </div>
+
+    <!-- Hidden compatibility elements to satisfy other sub-renderers if needed -->
+    <div id="valuationDonutContainer" hidden></div>
+    <div id="storageCapacityContent" hidden></div>
+    <div id="moversList" hidden></div>
+    <div id="statOut" hidden>0</div>
+    <div id="statValue" hidden>0</div>
+    <div id="inventoryRows" hidden></div>
+  </section>
+
+  <!-- DATA PRODUK PAGE -->
+  <section class="page" id="page-products">
+    <div class="page-heading">
+      <div>
+        <div class="eyebrow">INVENTARIS</div>
+        <h1>Data Produk</h1>
+        <p class="subtitle">Kelola seluruh katalog barang, harga, dan pantau stok minimum.</p>
+      </div>
+      <div class="heading-actions">
+        <button class="button secondary" id="exportBtn">
+          <svg class="w-3.5 h-3.5 text-gray-600" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          Export CSV
+        </button>
+        <button class="button primary" id="addProductBtn">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Tambah Produk
+        </button>
+      </div>
+    </div>
+    <section class="panel">
+      <div class="toolbar">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg>
+          <input id="productSearch" placeholder="Cari nama, SKU, atau lokasi...">
+        </div>
+        <select id="categoryFilter"><option value="">Semua kategori</option></select>
+        <select id="stockFilter"><option value="">Semua kondisi stok</option><option>Tersedia</option><option>Menipis</option><option>Habis</option></select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Produk</th>
+              <th>Kategori</th>
+              <th>SKU</th>
+              <th>Lokasi</th>
+              <th class="text-right">Stok Tersedia</th>
+              <th class="text-right">Stok Minimum</th>
+              <th class="text-right">Nilai Stok</th>
+              <th class="text-center">Status</th>
+              <th class="text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="productsRows"></tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+
+  <!-- STOCK OPNAME PAGE -->
+  <section class="page" id="page-sessions">
+    <div class="page-heading">
+      <div>
+        <div class="eyebrow">PENCATATAN FISIK</div>
+        <h1>Stock Opname</h1>
+        <p class="subtitle">Buat sesi, hitung stok fisik secara berkala, dan catat selisih inventaris.</p>
+      </div>
+      <button class="button primary" data-action="new-session">
+        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Mulai Stock Opname
+      </button>
+    </div>
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Riwayat Sesi</h2>
+          <p>Daftar pencatatan fisik stok di seluruh gudang</p>
+        </div>
+        <div class="toolbar-inline">
+          <select id="sessionFilter"><option value="">Semua status</option><option>Berlangsung</option><option>Selesai</option></select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Sesi Opname</th>
+              <th>Lokasi</th>
+              <th>Tanggal</th>
+              <th>Progres Hitung</th>
+              <th class="text-right">Selisih</th>
+              <th class="text-center">Status</th>
+              <th class="text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="sessionsRows"></tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+
+  <!-- LAPORAN PAGE -->
+  <section class="page" id="page-reports">
+    <div class="page-heading">
+      <div>
+        <div class="eyebrow">ANALITIK &amp; PERFORMA</div>
+        <h1>Laporan Inventaris</h1>
+        <p class="subtitle">Ringkasan valuasi stok, mutasi masuk-keluar, dan rekomendasi restock.</p>
+      </div>
+      <button class="button secondary" id="reportExport">
+        <svg class="w-3.5 h-3.5 text-gray-600" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Unduh Laporan
+      </button>
+    </div>
+    <div class="report-grid">
+      <section class="panel report-card">
+        <div class="report-head">
+          <span class="report-label">Total Nilai Stok</span>
+          <div class="report-icon green">
+            <svg class="w-4 h-4 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+        </div>
+        <strong id="reportValue" class="tabular-nums">—</strong>
+        <p>Estimasi modal aset stok</p>
+      </section>
+      <section class="panel report-card">
+        <div class="report-head">
+          <span class="report-label">Produk di Bawah Batas</span>
+          <div class="report-icon orange">
+            <svg class="w-4 h-4 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+        </div>
+        <strong id="reportLow" class="tabular-nums">—</strong>
+        <p>Perlu segera restock</p>
+      </section>
+      <section class="panel report-card">
+        <div class="report-head">
+          <span class="report-label">Unit Stok Tersedia</span>
+          <div class="report-icon blue">
+            <svg class="w-4 h-4 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          </div>
+        </div>
+        <strong id="reportUnits" class="tabular-nums">—</strong>
+        <p>Total fisik seluruh produk</p>
+      </section>
+      <section class="panel report-card">
+        <div class="report-head">
+          <span class="report-label">Total Produk Terdaftar</span>
+          <div class="report-icon slate">
+            <svg class="w-4 h-4 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          </div>
+        </div>
+        <strong id="reportProducts" class="tabular-nums">—</strong>
+        <p>Di semua kategori</p>
+      </section>
+    </div>
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Komposisi Stok per Kategori</h2>
+          <p>Total unit tersedia berdasarkan kategori</p>
+        </div>
+      </div>
+      <div class="category-chart" id="categoryChart"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Mutasi Stok Terbaru</h2>
+          <p>Riwayat stok masuk dan keluar yang tercatat</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>Produk</th>
+              <th class="text-right">Perubahan</th>
+              <th>Catatan</th>
+              <th>Pengguna</th>
+            </tr>
+          </thead>
+          <tbody id="movementRows"></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Perlu Restock Segera</h2>
+          <p>Daftar produk yang telah mencapai atau di bawah batas minimum</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Produk</th>
+              <th>Kategori</th>
+              <th>Lokasi</th>
+              <th class="text-right">Stok Tersisa</th>
+              <th class="text-right">Saran Restock</th>
+              <th class="text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="restockRows"></tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+
+  <!-- KRITIK & SARAN (FEEDBACK) PAGE -->
+  <section class="page" id="page-feedback">
+    <div class="page-heading">
+      <div>
+        <div class="eyebrow">OPERASIONAL</div>
+        <h1>Kritik &amp; Saran</h1>
+        <p class="subtitle">Ceritakan kendala, ide perbaikan fitur, atau masukan Anda kepada tim admin.</p>
+      </div>
+    </div>
+    <div class="feedback-layout">
+      <section class="panel feedback-form-card">
+        <div class="panel-header">
+          <div>
+            <h2>Kirim Masukan</h2>
+            <p>Pesan Anda akan langsung ditinjau oleh tim admin.</p>
+          </div>
+        </div>
+        <form id="feedbackForm" class="feedback-form">
+          <label>Kategori Masukan
+            <select name="category">
+              <option>Saran</option>
+              <option>Masalah</option>
+              <option>Ide Fitur</option>
+            </select>
+          </label>
+          <label>Isi Pesan
+            <textarea name="message" required minlength="5" maxlength="3000" placeholder="Tuliskan masukan atau kendala operasional yang Anda temukan..."></textarea>
+          </label>
+          <button class="button primary">Kirim Masukan</button>
+        </form>
+      </section>
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Riwayat Masukan Saya</h2>
+            <p>Daftar dan status tindak lanjut masukan yang sudah dikirim</p>
+          </div>
+        </div>
+        <div id="myFeedbackList" class="feedback-list"></div>
+      </section>
+    </div>
+  </section>
+
+  <!-- ADMIN & MONITORING (RBAC) PAGE -->
+  <section class="page" id="page-admin">
+    <div class="page-heading">
+      <div>
+        <div class="eyebrow">OPERASIONAL</div>
+        <h1>Admin &amp; Monitoring</h1>
+        <p class="subtitle">Kelola multi-admin, tinjau masukan, dan pantau kesehatan aplikasi.</p>
+      </div>
+      <div class="heading-actions">
+        <button class="button primary" id="addAdminUserBtn">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Tambah Admin / Staf
+        </button>
+        <button class="button secondary" id="refreshAdmin">
+          <svg class="w-3.5 h-3.5 text-gray-600" viewBox="0 0 24 24"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          Perbarui
+        </button>
+      </div>
+    </div>
+    <div class="report-grid admin-stats">
+      <section class="panel report-card">
+        <span class="report-label">Akun Terdaftar</span>
+        <strong id="adminUsers" class="tabular-nums">0</strong>
+        <p>Pengguna aplikasi</p>
+      </section>
+      <section class="panel report-card">
+        <span class="report-label">Masukan Baru</span>
+        <strong id="adminFeedbackCount" class="tabular-nums">0</strong>
+        <p>Belum selesai ditinjau</p>
+      </section>
+      <section class="panel report-card">
+        <span class="report-label">Error Terlapor</span>
+        <strong id="adminErrorsCount" class="tabular-nums">0</strong>
+        <p>Browser dan server</p>
+      </section>
+      <section class="panel report-card">
+        <span class="report-label">Opname Aktif</span>
+        <strong id="adminSessions" class="tabular-nums">0</strong>
+        <p>Sesi berlangsung</p>
+      </section>
+      <section class="panel report-card">
+        <span class="report-label">Server Aktif</span>
+        <strong id="adminUptime" class="tabular-nums">—</strong>
+        <p id="adminNode">Koneksi backend</p>
+      </section>
+    </div>
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Kritik &amp; Saran Pengguna</h2>
+          <p>Tinjau masukan dan tandai status tindak lanjut</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Waktu</th>
+              <th>Pengguna</th>
+              <th>Kategori</th>
+              <th>Isi Masukan</th>
+              <th class="text-center">Status</th>
+              <th class="text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="adminFeedbackRows"></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Log Error Aplikasi</h2>
+          <p>Catatan error sistem dan JavaScript yang dilaporkan pengguna</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Waktu</th>
+              <th>Pengguna</th>
+              <th>Halaman</th>
+              <th>Pesan Error</th>
+              <th class="text-center">Status</th>
+              <th class="text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="adminErrorRows"></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="panel">
+      <div class="panel-header">
+        <div>
+          <h2>Pengguna Terdaftar &amp; Manajemen Peran (RBAC)</h2>
+          <p>Kelola peran multi-admin, manager, staf, dan pengguna</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Nama Pengguna</th>
+              <th>Email Akun</th>
+              <th class="text-center">Peran Saat Ini</th>
+              <th>Tanggal Bergabung</th>
+              <th class="text-right">Ubah Peran (RBAC)</th>
+            </tr>
+          </thead>
+          <tbody id="adminUserRows"></tbody>
+        </table>
+      </div>
+    </section>
+  </section>
+
+  <!-- PENGATURAN PAGE -->
+  <section class="page" id="page-settings">
+    <div class="page-heading">
+      <div>
+        <div class="eyebrow">PENGATURAN</div>
+        <h1>Pengaturan Workspace</h1>
+        <p class="subtitle">Informasi aplikasi, profil akun, dan manajemen reset data.</p>
+      </div>
+    </div><section class="panel settings-card"><div class="settings-brand"><span class="brand-mark"><svg viewBox="0 0 40 40" fill="none"><path d="M9 13.5 20 8l11 5.5v13L20 32l-11-5.5v-13Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="m10 14 10 5 10-5M20 19v12M15 11l11 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><h2>Stockly Inventory</h2><p>Sistem pencatatan stock opname dan manajemen inventaris.</p></div></div><div class="settings-info"><div><span>Versi aplikasi</span><strong>1.1.0</strong></div><div><span>Akun masuk</span><strong id="currentUserName">—</strong></div><div><span>Produk tersimpan</span><strong id="settingsCount">—</strong></div><div><span>API Status</span><strong class="api-status">● Terhubung</strong></div></div><div class="notification-settings"><div><strong>Notifikasi ke perangkat ini</strong><p id="pushStatus">Aktifkan notifikasi untuk mendapat pembaruan stok dan masukan admin.</p></div><button class="button primary" id="enableNotifications">Aktifkan Notifikasi</button><button class="button secondary" id="testNotification" hidden>Kirim Notifikasi Uji</button></div><p class="settings-note">Untuk menerima notifikasi saat aplikasi tertutup, buka situs melalui HTTPS, izinkan notifikasi, dan pasang Stockly ke layar utama HP jika menggunakan iPhone.</p><div class="settings-actions"><button class="button secondary" id="logoutButton">Keluar dari akun</button></div></section>
+  <section class="panel border-rose-200 bg-rose-50/20 mt-5">
+    <div class="panel-header">
+      <div>
+        <h2 class="text-rose-900 font-semibold flex items-center gap-2">
+          <svg class="w-5 h-5 text-rose-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          Zona Bahaya: Reset Data Modular & Granular
+        </h2>
+        <p class="text-xs text-rose-700">Kosongkan log aktivitas, data produk, mutasi transaksi, atau lakukan full reset secara aman dan terisolasi.</p>
+      </div>
+    </div>
+    <div class="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white border border-rose-100 rounded-lg">
+      <div>
+        <strong class="block text-xs font-semibold text-gray-900">Pengaturan Reset Data Workspace</strong>
+        <span class="text-xs text-gray-500">Pilih modul data tertentu yang ingin dikosongkan dengan perlindungan konfirmasi pengetikan 'RESET'.</span>
+      </div>
+      <button type="button" class="button secondary danger-button text-xs font-semibold shrink-0" id="openSettingsResetBtn">
+        Buka Menu Reset Data
+      </button>
+    </div>
+  </section>
+  </section>
+  <footer>© 2026 Stockly Inventory <span>Dirancang untuk pengelolaan stok yang lebih baik.</span></footer>
+</main>
+<div class="modal-backdrop" id="modalBackdrop"><div class="modal" id="modal"></div></div><div class="toast" id="toast"></div>
+<script src="/app.js"></script>
+</body></html>

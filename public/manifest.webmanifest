@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "Stockly Stock Opname",
+  "short_name": "Stockly",
+  "description": "Kelola inventaris dan stock opname dengan mudah.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f8fc",
+  "theme_color": "#6254d9",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
