@@ -171,9 +171,11 @@ async function sendPush(db,userIds,payload){
 }
 function allowedPushHost(host){return host==='fcm.googleapis.com'||host==='web.push.apple.com'||host.endsWith('.push.services.mozilla.com')||host.endsWith('.notify.windows.com')}
 
-if (!process.env.VERCEL) {
-  const initial = await database();
-  if (!initial.users.some(user=>user.role==='admin')) console.log(`Kode setup admin Stockly (gunakan di halaman Buat Admin): ${initial.setupToken}`);
+const isMainModule = Boolean(process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]) && !process.env.VERCEL && !process.env.VERCEL_ENV && !process.env.AWS_LAMBDA_FUNCTION_NAME);
+
+if (isMainModule) {
+  const initial = await database().catch(() => ({ users: [] }));
+  if (initial && !initial.users.some(user=>user.role==='admin')) console.log(`Kode setup admin Stockly (gunakan di halaman Buat Admin): ${initial.setupToken}`);
 }
 export async function handle(req, res) {
   if (req.method === 'OPTIONS') return send(res, 204, '');
@@ -754,7 +756,7 @@ export async function handle(req, res) {
   } catch (error) { console.error(error); if(db&&error.status!==413){db.errors.unshift({id:`ERR-${Date.now()}`,source:'server',userId:currentUser(req,db)?.id||null,message:String(error.message||'Server error').slice(0,500),stack:String(error.stack||'').slice(0,3000),page:url.pathname,createdAt:new Date().toISOString(),status:'Baru'});db.errors=db.errors.slice(0,300);await save(db).catch(()=>{});await sendPush(db,db.users.filter(u=>u.role==='admin').map(u=>u.id),{title:'Error server Stockly',body:`${String(error.message||'Server error').slice(0,120)} · ${url.pathname}`,url:'/#admin'});} return send(res,error.status||500,{error:error.status===413?'Permintaan terlalu besar.':'Terjadi kesalahan pada server.'}); }
 }
 
-if (!process.env.VERCEL) {
+if (isMainModule) {
   const server = http.createServer(handle);
   server.listen(port,'0.0.0.0',()=>console.log(`Stockly berjalan di http://localhost:${port}`));
 }
