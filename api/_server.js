@@ -781,7 +781,7 @@ export async function handle(req, res) {
     } catch {
       return send(res, 404, 'Not found', 'text/plain; charset=utf-8');
     }
-  } catch (error) { console.error(error); if(db&&error.status!==413){db.errors.unshift({id:`ERR-${Date.now()}`,source:'server',userId:currentUser(req,db)?.id||null,message:String(error.message||'Server error').slice(0,500),stack:String(error.stack||'').slice(0,3000),page:url.pathname,createdAt:new Date().toISOString(),status:'Baru'});db.errors=db.errors.slice(0,300);await save(db).catch(()=>{});await sendPush(db,db.users.filter(u=>u.role==='admin').map(u=>u.id),{title:'Error server Stockly',body:`${String(error.message||'Server error').slice(0,120)} · ${url.pathname}`,url:'/#admin'});} return send(res,error.status||500,{error:error.status===413?'Permintaan terlalu besar.':'Terjadi kesalahan pada server.'}); }
+  } catch (error) { console.error(error); if(db&&error.status!==413){db.errors.unshift({id:`ERR-${Date.now()}`,source:'server',userId:currentUser(req,db)?.id||null,message:String(error.message||'Server error').slice(0,500),stack:String(error.stack||'').slice(0,3000),page:url.pathname,createdAt:new Date().toISOString(),status:'Baru'});db.errors=db.errors.slice(0,300);await save(db).catch(()=>{});await sendPush(db,db.users.filter(u=>u.role==='admin').map(u=>u.id),{title:'Error server Stockly',body:`${String(error.message||'Server error').slice(0,120)} · ${url.pathname}`,url:'/#admin'}).catch(()=>{});} return send(res,error.status||500,{error:error.status===413?'Permintaan terlalu besar.':'Terjadi kesalahan pada server.'}); }
 }
 export default handle;
 
