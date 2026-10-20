@@ -4,5 +4,5 @@
   "description": "Aplikasi pencatatan stock opname dengan backend Node.js dan penyimpanan JSON.",
   "type": "module",
   "scripts": { "start": "node dev-server.js", "dev": "node --watch dev-server.js" },
-  "engines": { "node": "20.x" }
+  "engines": { "node": "24.x" }
 }
