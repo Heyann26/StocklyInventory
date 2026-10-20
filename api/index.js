@@ -2,7 +2,9 @@ import { handle } from '../lib/server.js';
 
 export default async function handler(req, res) {
   try {
-    const orig = req.headers['x-matched-path'] || req.headers['x-rewrite-url'] || req.url;
+    const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const paramPath = urlObj.searchParams.get('path');
+    const orig = req.headers['x-matched-path'] || req.headers['x-rewrite-url'] || (paramPath ? `/api/${paramPath}` : req.url);
     if (orig && orig.startsWith('/api')) {
       req.url = orig;
     }
@@ -10,11 +12,11 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error('API HANDLER ERROR:', err);
     if (!res.headersSent) {
-      res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.statusCode = 500;
+      res.setHeader('Content-Type', 'application/json; charset=utf-8');
       res.end(JSON.stringify({
         error: 'API Execution Error',
-        message: err.message,
-        stack: err.stack
+        message: err.message
       }));
     }
   }
