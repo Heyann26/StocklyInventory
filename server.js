@@ -6,7 +6,7 @@ import { createCipheriv, createECDH, createHash, createHmac, createPrivateKey, r
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.join(root, 'public');
-const dataDir = process.env.DATA_DIR || path.join(root, 'data');
+const dataDir = process.env.DATA_DIR || (process.env.VERCEL ? '/tmp' : path.join(root, 'data'));
 const dataFile = path.join(dataDir, 'db.json');
 const port = Number(process.env.PORT || 3000);
 const loginAttempts = new Map();
