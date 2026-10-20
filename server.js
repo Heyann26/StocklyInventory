@@ -70,7 +70,7 @@ async function database() {
     try {
       const endpoint = `${process.env.SUPABASE_URL.replace(/\/$/, '')}/rest/v1/stockly_state?id=eq.main&select=payload`;
       const headers = { apikey: process.env.SUPABASE_SERVICE_ROLE_KEY, Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`, 'Content-Type': 'application/json' };
-      const response = await fetch(endpoint, { headers, cache: 'no-store' });
+      const response = await fetch(endpoint, { headers, cache: 'no-store', signal: AbortSignal.timeout(4000) });
       if (response.ok) {
         const rows = await response.json();
         let db = rows[0]?.payload;
@@ -127,7 +127,7 @@ async function save(db) {
     try {
       const base = process.env.SUPABASE_URL.replace(/\/$/, '');
       const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      const response = await fetch(`${base}/rest/v1/stockly_state?on_conflict=id`, { method: 'POST', headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ id: 'main', payload: db, updated_at: new Date().toISOString() }) });
+      const response = await fetch(`${base}/rest/v1/stockly_state?on_conflict=id`, { method: 'POST', headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ id: 'main', payload: db, updated_at: new Date().toISOString() }), signal: AbortSignal.timeout(4000) });
       if (response.ok) return;
       console.warn(`Supabase save response: ${response.status}`);
     } catch (e) {
