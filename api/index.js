@@ -1,9 +1,8 @@
-import { handle } from '../server.js';
+import { handle } from './_server.js';
 
 export default async function handler(req, res) {
-  // Ensure the original requested URL is preserved across Vercel rewrites
-  const orig = req.headers['x-matched-path'] || req.headers['x-rewrite-url'] || req.url;
-  if (orig && !orig.includes('index.js')) {
+  const orig = req.headers['x-matched-path'] || req.headers['x-rewrite-url'];
+  if (orig && orig.startsWith('/api')) {
     req.url = orig;
   }
   return handle(req, res);
