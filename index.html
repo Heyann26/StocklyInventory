@@ -115,6 +115,9 @@
 
 <!-- Zoho Inventory Dark Sidebar -->
 <aside class="sidebar" id="sidebar">
+  <button class="sidebar-close-btn" id="sidebarCloseBtn" type="button" aria-label="Tutup menu">
+    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
   <a class="brand" href="#">
     <span class="brand-mark">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
@@ -174,33 +177,35 @@
     </div>
   </div>
 </aside>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
 <main class="main">
   <!-- Zoho Inventory Topbar Header -->
   <header class="topbar">
-    <button class="mobile-menu" id="mobileMenu" aria-label="Buka menu">
-      <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
-    </button>
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2 min-w-0">
+      <button class="mobile-menu" id="mobileMenu" aria-label="Buka menu">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <span class="mobile-brand-title font-bold text-gray-900 tracking-tight sm:hidden text-base shrink-0">Stockly<span class="text-red-600">.</span></span>
       <!-- Quick Red Add Button -->
       <button type="button" class="w-7 h-7 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center font-bold text-sm transition shrink-0" id="topQuickAdd" title="Tambah Produk">
         <svg class="w-4 h-4" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
       </button>
-      <!-- History Button -->
-      <button type="button" class="w-7 h-7 rounded text-gray-500 hover:text-gray-800 hover:bg-gray-100 flex items-center justify-center transition shrink-0" title="Riwayat" data-page="reports">
+      <!-- History Button (desktop only) -->
+      <button type="button" class="hidden sm:flex w-7 h-7 rounded text-gray-500 hover:text-gray-800 hover:bg-gray-100 items-center justify-center transition shrink-0" title="Riwayat" data-page="reports">
         <svg class="w-4 h-4" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 14 14"/></svg>
       </button>
       <!-- Search Input -->
       <div class="search-box">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg>
-        <input id="globalSearchInput" placeholder="Cari di inventaris...">
+        <input id="globalSearchInput" placeholder="Cari...">
       </div>
     </div>
 
     <!-- Right Header Controls -->
     <div class="top-actions">
-      <!-- Workspace Selector -->
-      <div class="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded cursor-pointer hover:bg-gray-100" id="topWorkspaceSwitcher">
+      <!-- Workspace Selector (desktop only) -->
+      <div class="hidden md:flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded cursor-pointer hover:bg-gray-100" id="topWorkspaceSwitcher">
         <span id="topWorkspaceName">Stockly Workspace</span>
         <svg class="w-3.5 h-3.5 text-gray-400" viewBox="0 0 20 20"><path d="m6 8 4 4 4-4"/></svg>
       </div>
@@ -224,22 +229,22 @@
   <!-- DASHBOARD OVERVIEW PAGE (Zoho Inventory Style) -->
   <section class="page active-page" id="page-overview">
     <!-- Controls Bar: Location Filter, Date Presets, and Quick Actions -->
-    <div class="bg-white border border-gray-200 rounded-lg p-3 mb-4 flex flex-wrap items-center justify-between gap-3">
-      <div class="flex items-center gap-3">
-        <div class="flex items-center gap-1.5 text-xs font-semibold text-gray-600">
+    <div class="overview-controls bg-white border border-gray-200 rounded-lg p-3 mb-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div class="flex flex-col sm:flex-row sm:items-center gap-2.5 w-full md:w-auto">
+        <div class="flex items-center gap-1.5 text-xs font-semibold text-gray-600 shrink-0">
           <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
           <span>Lokasi:</span>
-          <select id="overviewLocationFilter" class="bg-gray-50 border border-gray-200 text-gray-900 text-xs font-medium rounded px-2.5 py-1 outline-none">
+          <select id="overviewLocationFilter" class="bg-gray-50 border border-gray-200 text-gray-900 text-xs font-medium rounded px-2.5 py-1.5 outline-none flex-1 sm:flex-initial">
             <option value="">Semua Lokasi</option>
           </select>
         </div>
-        <div class="flex items-center bg-gray-100 p-0.5 rounded text-xs" id="datePresetGroup">
-          <button type="button" class="px-2.5 py-1 rounded bg-white text-gray-900 font-semibold" data-range="today">Hari Ini</button>
-          <button type="button" class="px-2.5 py-1 rounded text-gray-600 hover:text-gray-900" data-range="7d">7 Hari</button>
-          <button type="button" class="px-2.5 py-1 rounded text-gray-600 hover:text-gray-900" data-range="month">Bulan Ini</button>
-          <button type="button" class="px-2.5 py-1 rounded text-gray-600 hover:text-gray-900" data-range="ytd">YTD</button>
+        <div class="grid grid-cols-4 sm:flex items-center bg-gray-100 p-0.5 rounded text-xs w-full sm:w-auto" id="datePresetGroup">
+          <button type="button" class="px-2.5 py-1.5 text-center rounded bg-white text-gray-900 font-semibold shadow-sm transition" data-range="today">Hari Ini</button>
+          <button type="button" class="px-2.5 py-1.5 text-center rounded text-gray-600 hover:text-gray-900 transition" data-range="7d">7 Hari</button>
+          <button type="button" class="px-2.5 py-1.5 text-center rounded text-gray-600 hover:text-gray-900 transition" data-range="month">Bulan Ini</button>
+          <button type="button" class="px-2.5 py-1.5 text-center rounded text-gray-600 hover:text-gray-900 transition" data-range="ytd">YTD</button>
         </div>
-        <div class="hidden sm:flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded px-2 py-1 text-xs">
+        <div class="hidden lg:flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded px-2 py-1 text-xs">
           <input type="date" id="dateFilterStart" class="bg-transparent text-xs text-gray-700 outline-none" title="Tanggal Mulai">
           <span class="text-gray-400">-</span>
           <input type="date" id="dateFilterEnd" class="bg-transparent text-xs text-gray-700 outline-none" title="Tanggal Selesai">
@@ -247,26 +252,26 @@
         </div>
       </div>
 
-      <!-- Quick Action Pills -->
-      <div class="flex items-center gap-1.5 flex-wrap">
-        <button type="button" id="quickActionScan" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded">
-          <svg class="w-3.5 h-3.5 text-gray-500" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
+      <!-- Quick Action Grid -->
+      <div class="overview-actions-grid grid grid-cols-2 sm:grid-cols-3 md:flex items-center gap-2 w-full md:w-auto">
+        <button type="button" id="quickActionScan" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md transition shadow-xs">
+          <svg class="w-3.5 h-3.5 text-gray-500 shrink-0" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
           Scan Barcode
         </button>
-        <button type="button" id="quickActionOpname" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded" data-action="new-session">
-          <svg class="w-3.5 h-3.5 text-gray-500" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+        <button type="button" id="quickActionOpname" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md transition shadow-xs" data-action="new-session">
+          <svg class="w-3.5 h-3.5 text-gray-500 shrink-0" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
           Stock Opname
         </button>
-        <button type="button" id="quickActionAddProduct" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded">
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <button type="button" id="quickActionAddProduct" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-md transition shadow-xs">
+          <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Tambah Produk
         </button>
-        <button type="button" id="quickActionReport" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded" data-page="reports">
-          <svg class="w-3.5 h-3.5 text-gray-500" viewBox="0 0 24 24"><path d="M4 19V5M4 19h17M8 15l4-4 3 2 5-7"/></svg>
+        <button type="button" id="quickActionReport" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md transition shadow-xs" data-page="reports">
+          <svg class="w-3.5 h-3.5 text-gray-500 shrink-0" viewBox="0 0 24 24"><path d="M4 19V5M4 19h17M8 15l4-4 3 2 5-7"/></svg>
           Laporan
         </button>
-        <button type="button" id="quickActionReset" class="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded" title="Reset data modular">
-          <svg class="w-3.5 h-3.5 text-red-600" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        <button type="button" id="quickActionReset" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-md transition shadow-xs col-span-2 sm:col-span-1" title="Reset data modular">
+          <svg class="w-3.5 h-3.5 text-red-600 shrink-0" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
           Reset Data
         </button>
       </div>
@@ -902,6 +907,31 @@
   </section>
   <footer>© 2026 Stockly Inventory <span>Dirancang untuk pengelolaan stok yang lebih baik.</span></footer>
 </main>
+
+<!-- Mobile Bottom Navigation Bar (iOS & Android) -->
+<nav class="bottom-nav" id="bottomNav" aria-label="Navigasi Bawah Mobile">
+  <a href="#overview" data-page="overview" class="bottom-nav-item active">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
+    <span>Beranda</span>
+  </a>
+  <a href="#products" data-page="products" class="bottom-nav-item">
+    <svg viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5 9-5ZM3 12l9 5 9-5M3 16l9 5 9-5"/></svg>
+    <span>Stok</span>
+  </a>
+  <a href="#sessions" data-page="sessions" class="bottom-nav-item">
+    <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h3M8 17h6"/></svg>
+    <span>Opname</span>
+  </a>
+  <a href="#reports" data-page="reports" class="bottom-nav-item">
+    <svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h17M8 15l4-4 3 2 5-7"/><path d="M16 6h4v4"/></svg>
+    <span>Laporan</span>
+  </a>
+  <button type="button" class="bottom-nav-item" id="bottomNavMenuBtn" aria-label="Buka Semua Menu">
+    <svg viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+    <span>Menu</span>
+  </button>
+</nav>
+
 <div class="modal-backdrop" id="modalBackdrop"><div class="modal" id="modal"></div></div><div class="toast" id="toast"></div>
 <script src="/app.js"></script>
 </body></html>

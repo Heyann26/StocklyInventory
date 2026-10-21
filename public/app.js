@@ -705,13 +705,24 @@ async function refresh() {
 
 const pages = { overview: 'Ringkasan', products: 'Data Produk', sessions: 'Stock Opname', reports: 'Laporan', feedback: 'Kritik & Saran', admin: 'Admin & Monitoring', settings: 'Pengaturan' };
 
+function toggleSidebar(forceState) {
+  const sidebar = $('#sidebar');
+  const backdrop = $('#sidebarBackdrop');
+  if (!sidebar) return;
+  const isOpen = forceState !== undefined ? forceState : !sidebar.classList.contains('open');
+  sidebar.classList.toggle('open', isOpen);
+  backdrop?.classList.toggle('active', isOpen);
+}
+
 function go(page) {
   if (!pages[page] || (page === 'admin' && currentUser?.role?.toLowerCase() !== 'admin')) return;
   $$('.page').forEach(p => p.classList.toggle('active-page', p.id === `page-${page}`));
   $$('.nav-link[data-page]').forEach(a => a.classList.toggle('active', a.dataset.page === page));
+  $$('.bottom-nav-item[data-page]').forEach(a => a.classList.toggle('active', a.dataset.page === page));
   if ($('#breadcrumb')) $('#breadcrumb').textContent = pages[page];
-  $('#sidebar')?.classList.remove('open');
+  toggleSidebar(false);
   history.replaceState(null, '', `#${page}`);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
   if (page === 'admin') loadAdmin();
   if (page === 'feedback') loadMyFeedback();
   if (page === 'settings') refreshPushState();
@@ -1190,9 +1201,17 @@ if ($('#todayDate')) {
 $$('[data-page]').forEach(el => el.addEventListener('click', e => { e.preventDefault(); go(el.dataset.page); }));
 $$('[data-action="new-session"]').forEach(el => el.addEventListener('click', openSessionForm));
 
-$('#mobileMenu')?.addEventListener('click', () => $('#sidebar')?.classList.toggle('open'));
+$('#mobileMenu')?.addEventListener('click', () => toggleSidebar());
+$('#sidebarCloseBtn')?.addEventListener('click', () => toggleSidebar(false));
+$('#sidebarBackdrop')?.addEventListener('click', () => toggleSidebar(false));
+$('#bottomNavMenuBtn')?.addEventListener('click', () => toggleSidebar(true));
 $('#modalBackdrop')?.addEventListener('click', e => { if (e.target.id === 'modalBackdrop') closeModal(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeModal();
+    toggleSidebar(false);
+  }
+});
 
 $('#addProductBtn')?.addEventListener('click', () => openProductForm());
 $('#productSearch')?.addEventListener('input', renderProducts);
