@@ -121,21 +121,42 @@ function renderOverview() {
 
   const distinctCategories = new Set(filteredProducts.map(p => p.category)).size;
   const unconfirmedCount = filteredProducts.filter(p => p.stock === 0 || !p.lastCounted).length;
-  const pendingCount = approvals.filter(a => a.status === 'pending').reduce((s, a) => s + (Number(a.quantity) || 0), 0);
+  
+  // Real activity metrics based on approvals & outbound movements
+  const pendingToPack = approvals
+    .filter(a => a.status === 'pending' && a.type === 'transfer')
+    .reduce((s, a) => s + (Number(a.quantity) || 0), 0);
 
-  // Update Zoho KPI Stat Cards:
-  // 1. TO BE PACKED: checkedInDateRange or low stock unit
-  if ($('#statChecked')) $('#statChecked').textContent = (checkedInDateRange || (filteredProducts.length > 0 ? 228 : 0)).toLocaleString('id-ID');
-  // 2. TO BE SHIPPED: low stock count
-  if ($('#statLow')) $('#statLow').textContent = lowStock.toLocaleString('id-ID');
-  // 3. TO BE DELIVERED: active opname sessions count
-  if ($('#statSessions')) $('#statSessions').textContent = activeSessionsCount.toLocaleString('id-ID');
-  // 4. TO BE INVOICED: total orders count or items
-  if ($('#statToBeInvoiced')) $('#statToBeInvoiced').textContent = (filteredProducts.length > 0 ? 474 : 0).toLocaleString('id-ID');
+  const readyToShip = approvals
+    .filter(a => a.status === 'approved' && a.type === 'transfer')
+    .length;
+
+  const inTransitShipments = approvals
+    .filter(a => (a.status === 'in_transit' || a.status === 'shipping') && a.type === 'transfer')
+    .length;
+
+  const outboundInvoiced = (dashboard.movements || []).filter(m => {
+    return isDateInRange(m.createdAt) && (Number(m.delta) < 0);
+  }).length;
+
+  // Update Zoho KPI Stat Cards with actual data (0 if none)
+  // 1. TO BE PACKED: Pending transfer units waiting to be packed
+  if ($('#statChecked')) $('#statChecked').textContent = pendingToPack.toLocaleString('id-ID');
+  // 2. TO BE SHIPPED: Approved packages ready to ship
+  if ($('#statLow')) $('#statLow').textContent = readyToShip.toLocaleString('id-ID');
+  // 3. TO BE DELIVERED: Transfers / packages currently in delivery
+  if ($('#statSessions')) $('#statSessions').textContent = inTransitShipments.toLocaleString('id-ID');
+  // 4. TO BE INVOICED: Outbound distribution / sales movements recorded
+  if ($('#statToBeInvoiced')) $('#statToBeInvoiced').textContent = outboundInvoiced.toLocaleString('id-ID');
 
   // Inventory Summary
+  // STOK FISIK TERSEDIA: Real sum of product stock
   if ($('#statAvailable')) $('#statAvailable').textContent = availableUnits.toLocaleString('id-ID');
-  if ($('#statToBeReceived')) $('#statToBeReceived').textContent = (pendingCount || (filteredProducts.length > 0 ? 168 : 0)).toLocaleString('id-ID');
+  // PESANAN MENUNGGU MASUK: Pending incoming purchase/restock order approvals
+  const pendingIncomingCount = approvals
+    .filter(a => a.status === 'pending' && (!a.type || a.type === 'order' || a.type === 'restock'))
+    .reduce((s, a) => s + (Number(a.quantity) || 0), 0);
+  if ($('#statToBeReceived')) $('#statToBeReceived').textContent = pendingIncomingCount.toLocaleString('id-ID');
 
   // Product Details
   if ($('#prodLowStock')) $('#prodLowStock').textContent = lowStock.toLocaleString('id-ID');
@@ -179,8 +200,22 @@ function renderTopSellingItems(products) {
     return;
   }
 
-  // Pick top items
-  const topItems = products.slice(0, 2);
+  // Calculate actual sales from outbound movements
+  const productSales = products.map(p => {
+    const outbound = (dashboard.movements || [])
+      .filter(m => m.productId === p.id && Number(m.delta) < 0)
+      .reduce((sum, m) => sum + Math.abs(Number(m.delta) || 0), 0);
+    return { ...p, sold: outbound };
+  });
+
+  const soldItems = productSales.filter(p => p.sold > 0).sort((a, b) => b.sold - a.sold);
+
+  if (!soldItems.length) {
+    container.innerHTML = `<div class="col-span-2 p-6 text-center text-xs text-gray-400 font-medium bg-gray-50 rounded">Belum ada aktivitas penjualan tercatat.</div>`;
+    return;
+  }
+
+  const topItems = soldItems.slice(0, 2);
   const sampleIcons = [
     '<svg class="w-8 h-8 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>',
     '<svg class="w-8 h-8 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/></svg>'
@@ -193,8 +228,8 @@ function renderTopSellingItems(products) {
       </div>
       <strong class="text-xs font-semibold text-gray-900 truncate w-full" title="${esc(p.name)}">${esc(p.name)}</strong>
       <div class="mt-2 text-center">
-        <span class="text-base font-bold text-gray-900 tabular-nums">${p.stock || 171}</span>
-        <span class="text-[11px] text-gray-500 font-medium">${esc(p.unit || 'pcs')}</span>
+        <span class="text-base font-bold text-gray-900 tabular-nums">${p.sold.toLocaleString('id-ID')}</span>
+        <span class="text-[11px] text-gray-500 font-medium">terjual (${esc(p.unit || 'pcs')})</span>
       </div>
     </div>
   `).join('');
@@ -204,25 +239,19 @@ function renderSalesOrdersTable(products) {
   const tbody = $('#salesOrderRows');
   if (!tbody) return;
 
-  if (!products.length) {
-    tbody.innerHTML = `<tr><td colspan="5" class="empty-state text-center py-6 text-xs text-gray-400">Belum ada data pesanan penjualan.</td></tr>`;
+  const salesOrders = dashboard.salesOrders || [];
+  if (!salesOrders.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-state text-center py-6 text-xs text-gray-400">Belum ada data pesanan penjualan atau kanal distribusi.</td></tr>`;
     return;
   }
 
-  // Display top categories or channels
-  const channels = [
-    { name: 'Direct Sales / Toko', draft: 12, confirmed: 45, packed: 24, shipped: 110 },
-    { name: 'E-Commerce / Online', draft: 8, confirmed: 32, packed: 18, shipped: 85 },
-    { name: 'Grosir / Distributor', draft: 4, confirmed: 15, packed: 9, shipped: 42 }
-  ];
-
-  tbody.innerHTML = channels.map(c => `
+  tbody.innerHTML = salesOrders.map(c => `
     <tr>
       <td class="font-medium text-gray-900 text-xs">${esc(c.name)}</td>
-      <td class="text-right text-gray-600 tabular-nums">${c.draft}</td>
-      <td class="text-right text-sky-700 font-semibold tabular-nums">${c.confirmed}</td>
-      <td class="text-right text-amber-700 font-semibold tabular-nums">${c.packed}</td>
-      <td class="text-right text-emerald-700 font-semibold tabular-nums">${c.shipped}</td>
+      <td class="text-right text-gray-600 tabular-nums">${Number(c.draft || 0).toLocaleString('id-ID')}</td>
+      <td class="text-right text-sky-700 font-semibold tabular-nums">${Number(c.confirmed || 0).toLocaleString('id-ID')}</td>
+      <td class="text-right text-amber-700 font-semibold tabular-nums">${Number(c.packed || 0).toLocaleString('id-ID')}</td>
+      <td class="text-right text-emerald-700 font-semibold tabular-nums">${Number(c.shipped || 0).toLocaleString('id-ID')}</td>
     </tr>
   `).join('');
 }
