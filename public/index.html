@@ -280,51 +280,64 @@
     <!-- ROW 1: Zoho Inventory Top Section -->
     <!-- Left: Sales Activity (4-segment KPI) | Right: Inventory Summary -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-      <!-- SALES ACTIVITY CARD (Col span 2) -->
       <div class="lg:col-span-2 bg-white border border-gray-200 rounded-lg p-5">
-        <div class="mb-4">
-          <h2 class="text-sm font-bold text-gray-900 tracking-tight">Aktivitas Penjualan &amp; Distribusi</h2>
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-sm font-bold text-gray-900 tracking-tight">Aktivitas Penjualan &amp; Distribusi</h2>
+            <p class="text-[11px] text-gray-400">Alur pengemasan barang, pengiriman pesanan, dan penerbitan faktur</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" id="btnManageWorkflow" class="px-2.5 py-1 text-xs font-semibold rounded border border-gray-200 text-gray-700 bg-gray-50 hover:bg-gray-100 transition inline-flex items-center gap-1">
+              <span>📋</span> Kelola Alur
+            </button>
+            <button type="button" id="btnNewOrderModal" class="px-3 py-1 text-xs font-semibold rounded bg-sky-600 text-white hover:bg-sky-700 transition inline-flex items-center gap-1 shadow-sm">
+              <span>+</span> Pesanan Baru
+            </button>
+          </div>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
           <!-- 1. SIAP DIKEMAS -->
-          <div class="py-2 sm:py-0 sm:px-4 first:pl-0 text-center flex flex-col items-center justify-center">
-            <div class="text-2xl font-bold text-sky-600 tracking-tight" id="statChecked">0</div>
+          <div class="py-2.5 sm:py-2 sm:px-3 first:pl-0 text-center flex flex-col items-center justify-center cursor-pointer hover:bg-sky-50/50 rounded-lg transition group" id="cardToBePacked" title="Klik untuk memproses kemasan pesanan">
+            <div class="text-2xl font-bold text-sky-600 tracking-tight group-hover:scale-105 transition" id="statChecked">0</div>
             <div class="text-[11px] text-gray-400 font-medium -mt-0.5">Unit</div>
             <div class="flex items-center gap-1 text-[11px] font-semibold text-gray-600 mt-2">
-              <svg class="w-3.5 h-3.5 text-gray-400" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="9 12 11 14 15 10"/></svg>
+              <svg class="w-3.5 h-3.5 text-gray-400 group-hover:text-sky-600 transition" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="9 12 11 14 15 10"/></svg>
               <span class="tracking-wide text-[11px]">Siap Dikemas</span>
             </div>
+            <span class="text-[9px] text-sky-600 font-medium opacity-0 group-hover:opacity-100 transition mt-0.5">Kelola kemas →</span>
           </div>
 
           <!-- 2. SIAP DIKIRIM -->
-          <div class="py-2 sm:py-0 sm:px-4 text-center flex flex-col items-center justify-center">
-            <div class="text-2xl font-bold text-red-600 tracking-tight" id="statLow">0</div>
+          <div class="py-2.5 sm:py-2 sm:px-3 text-center flex flex-col items-center justify-center cursor-pointer hover:bg-red-50/50 rounded-lg transition group" id="cardToBeShipped" title="Klik untuk memproses pengiriman paket">
+            <div class="text-2xl font-bold text-red-600 tracking-tight group-hover:scale-105 transition" id="statLow">0</div>
             <div class="text-[11px] text-gray-400 font-medium -mt-0.5">Paket</div>
             <div class="flex items-center gap-1 text-[11px] font-semibold text-gray-600 mt-2">
-              <svg class="w-3.5 h-3.5 text-gray-400" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 14 14"/></svg>
+              <svg class="w-3.5 h-3.5 text-gray-400 group-hover:text-red-600 transition" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 14 14"/></svg>
               <span class="tracking-wide text-[11px]">Siap Dikirim</span>
             </div>
+            <span class="text-[9px] text-red-600 font-medium opacity-0 group-hover:opacity-100 transition mt-0.5">Kirim paket →</span>
           </div>
 
           <!-- 3. DALAM PENGIRIMAN -->
-          <div class="py-2 sm:py-0 sm:px-4 text-center flex flex-col items-center justify-center">
-            <div class="text-2xl font-bold text-emerald-600 tracking-tight" id="statSessions">0</div>
+          <div class="py-2.5 sm:py-2 sm:px-3 text-center flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-50/50 rounded-lg transition group" id="cardInTransit" title="Klik untuk melacak & menyelesaikan pengiriman">
+            <div class="text-2xl font-bold text-emerald-600 tracking-tight group-hover:scale-105 transition" id="statSessions">0</div>
             <div class="text-[11px] text-gray-400 font-medium -mt-0.5">Paket</div>
             <div class="flex items-center gap-1 text-[11px] font-semibold text-gray-600 mt-2">
-              <svg class="w-3.5 h-3.5 text-gray-400" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+              <svg class="w-3.5 h-3.5 text-gray-400 group-hover:text-emerald-600 transition" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
               <span class="tracking-wide text-[11px]">Dalam Pengiriman</span>
             </div>
+            <span class="text-[9px] text-emerald-600 font-medium opacity-0 group-hover:opacity-100 transition mt-0.5">Lacak &amp; faktur →</span>
           </div>
 
           <!-- 4. FAKTUR DITERBITKAN -->
-          <div class="py-2 sm:py-0 sm:px-4 last:pr-0 text-center flex flex-col items-center justify-center">
-            <div class="text-2xl font-bold text-sky-600 tracking-tight" id="statToBeInvoiced">0</div>
+          <div class="py-2.5 sm:py-2 sm:px-3 last:pr-0 text-center flex flex-col items-center justify-center cursor-pointer hover:bg-sky-50/50 rounded-lg transition group" id="cardInvoiced" title="Klik untuk melihat riwayat faktur diterbitkan">
+            <div class="text-2xl font-bold text-sky-600 tracking-tight group-hover:scale-105 transition" id="statToBeInvoiced">0</div>
             <div class="text-[11px] text-gray-400 font-medium -mt-0.5">Faktur</div>
             <div class="flex items-center gap-1 text-[11px] font-semibold text-gray-600 mt-2">
-              <svg class="w-3.5 h-3.5 text-gray-400" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <svg class="w-3.5 h-3.5 text-gray-400 group-hover:text-sky-600 transition" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
               <span class="tracking-wide text-[11px]">Faktur Diterbitkan</span>
             </div>
-          </div>
+            <span class="text-[9px] text-sky-600 font-medium opacity-0 group-hover:opacity-100 transition mt-0.5">Lihat faktur →</span>
         </div>
       </div>
 

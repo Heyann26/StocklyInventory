@@ -140,19 +140,20 @@ function renderOverview() {
   
   // Real activity metrics based on approvals & outbound movements
   const pendingToPack = approvals
-    .filter(a => a.status === 'pending' && a.type === 'transfer')
+    .filter(a => a.status === 'pending' && (!a.type || a.type === 'transfer' || a.type === 'sale'))
     .reduce((s, a) => s + (Number(a.quantity) || 0), 0);
 
   const readyToShip = approvals
-    .filter(a => a.status === 'approved' && a.type === 'transfer')
+    .filter(a => a.status === 'approved' && (!a.type || a.type === 'transfer' || a.type === 'sale'))
     .length;
 
   const inTransitShipments = approvals
-    .filter(a => (a.status === 'in_transit' || a.status === 'shipping') && a.type === 'transfer')
+    .filter(a => (a.status === 'in_transit' || a.status === 'shipping') && (!a.type || a.type === 'transfer' || a.type === 'sale'))
     .length;
 
-  const outboundInvoiced = (dashboard.movements || []).filter(m => {
-    return isDateInRange(m.createdAt) && (Number(m.delta) < 0);
+  const invoicedApprovals = approvals.filter(a => a.status === 'invoiced').length;
+  const outboundInvoiced = invoicedApprovals + (dashboard.movements || []).filter(m => {
+    return isDateInRange(m.createdAt) && (Number(m.delta) < 0) && !m.reason?.includes('INV-');
   }).length;
 
   // Update Zoho KPI Stat Cards with actual data (0 if none)
@@ -1379,17 +1380,324 @@ $('#expFilterUrgent')?.addEventListener('click', () => {
   renderExpiringSoon(dashboard.products);
 });
 
-// Movers tabs
-$$('#moversTabGroup button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    $$('#moversTabGroup button').forEach(b => {
-      b.className = 'px-2 py-1 rounded-md text-gray-500 hover:text-gray-900';
-    });
-    btn.className = 'px-2 py-1 rounded-md bg-white font-semibold text-gray-900 shadow-sm';
-    activeMoversTab = btn.dataset.moversTab;
-    renderMovers(dashboard.products);
+// =========================================================================
+// FITUR AKTIVITAS PENJUALAN & DISTRIBUSI (Sales & Distribution Workflow)
+// =========================================================================
+
+function openCreateOrderModal() {
+  const products = (dashboard.products || []).filter(p => Number(p.stock) > 0);
+  if (!products.length) {
+    toast('Tidak ada produk dengan stok tersedia saat ini. Silakan tambah stok terlebih dahulu.');
+    return;
+  }
+
+  const initialProd = products[0];
+
+  modalFrame(
+    'Buat Pesanan Penjualan & Distribusi',
+    'Catat pesanan barang keluar untuk pelanggan, toko cabang, atau marketplace.',
+    `
+      <form id="orderWorkflowForm" class="form-grid" onsubmit="return false;">
+        <div class="form-field full">
+          <label>Pilih Produk Berstok *</label>
+          <select name="productId" required id="orderProductSelect">
+            ${products.map(p => `
+              <option value="${esc(p.id)}" data-unit="${esc(p.unit)}" data-stock="${p.stock}" data-sku="${esc(p.sku)}" data-location="${esc(p.location || 'Gudang Utama')}">
+                ${esc(p.name)} (${esc(p.sku)}) — Stok: ${p.stock} ${esc(p.unit)}
+              </option>
+            `).join('')}
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Jumlah Unit Keluar *</label>
+          <input name="quantity" type="number" min="1" max="${initialProd.stock}" step="1" value="1" required id="orderQuantityInput">
+          <span class="text-[10px] text-gray-500 mt-0.5 block" id="orderStockHint">Maksimum: ${initialProd.stock} ${esc(initialProd.unit)}</span>
+        </div>
+        <div class="form-field">
+          <label>Tujuan / Pembeli / Cabang *</label>
+          <input name="to" required placeholder="Contoh: Toko Cabang Jakarta / Bapak Budi" list="destSuggestions">
+          <datalist id="destSuggestions">
+            <option value="Toko Cabang Jakarta">
+            <option value="Toko Cabang Surabaya">
+            <option value="Customer Marketplace">
+            <option value="Pelanggan Grosir Utama">
+            <option value="Mitra Distribusi Bandung">
+          </datalist>
+        </div>
+        <div class="form-field">
+          <label>Lokasi Asal Barang</label>
+          <input name="from" id="orderOriginInput" value="${esc(initialProd.location || 'Gudang Utama')}" placeholder="Gudang Utama">
+        </div>
+        <div class="form-field">
+          <label>Penanggung Jawab</label>
+          <input name="requester" value="${esc(currentUser?.name || 'Admin Gudang')}" required>
+        </div>
+        <div class="form-field full">
+          <label>Catatan / Nomor Referensi Pesanan</label>
+          <input name="notes" placeholder="Contoh: PO-2026-991 atau kirim via JNE Kargo">
+        </div>
+      </form>
+    `,
+    'Buat Pesanan & Masuk Kemas'
+  );
+
+  const select = $('#orderProductSelect');
+  const qtyInput = $('#orderQuantityInput');
+  const stockHint = $('#orderStockHint');
+  const originInput = $('#orderOriginInput');
+  const form = $('#orderWorkflowForm');
+
+  select?.addEventListener('change', () => {
+    const opt = select.selectedOptions[0];
+    const stock = Number(opt?.dataset.stock || 0);
+    const unit = opt?.dataset.unit || 'unit';
+    const loc = opt?.dataset.location || 'Gudang Utama';
+    if (qtyInput) {
+      qtyInput.max = stock;
+      if (Number(qtyInput.value) > stock) qtyInput.value = stock;
+    }
+    if (stockHint) stockHint.textContent = `Maksimum: ${stock} ${unit}`;
+    if (originInput && !originInput.value) originInput.value = loc;
   });
-});
+
+  form?.addEventListener('submit', e => { e.preventDefault(); $('#modalSubmit')?.click(); });
+
+  $('#modalSubmit').addEventListener('click', async () => {
+    if (!form || !form.reportValidity()) return;
+    const btn = $('#modalSubmit');
+    if (btn) btn.disabled = true;
+
+    const data = Object.fromEntries(new FormData(form));
+    data.quantity = Number(data.quantity);
+    
+    try {
+      await api('/api/approvals', {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      closeModal();
+      await refresh();
+      toast('Pesanan distribusi berhasil dibuat dan masuk ke tahap "Siap Dikemas".');
+      openDistributionWorkflowModal('pending');
+    } catch (err) {
+      toast(err.message);
+      if (btn) btn.disabled = false;
+    }
+  });
+}
+
+function openDistributionWorkflowModal(activeTab = 'all') {
+  const approvals = dashboard.approvals || [];
+  
+  const pendingCount = approvals.filter(a => a.status === 'pending').length;
+  const approvedCount = approvals.filter(a => a.status === 'approved').length;
+  const inTransitCount = approvals.filter(a => a.status === 'in_transit' || a.status === 'shipping').length;
+  const invoicedCount = approvals.filter(a => a.status === 'invoiced').length;
+
+  const renderList = (tab) => {
+    let filtered = approvals;
+    if (tab === 'pending') filtered = approvals.filter(a => a.status === 'pending');
+    else if (tab === 'approved') filtered = approvals.filter(a => a.status === 'approved');
+    else if (tab === 'in_transit') filtered = approvals.filter(a => a.status === 'in_transit' || a.status === 'shipping');
+    else if (tab === 'invoiced') filtered = approvals.filter(a => a.status === 'invoiced');
+
+    if (!filtered.length) {
+      return `
+        <div class="p-8 text-center text-xs text-gray-400 font-medium bg-gray-50 rounded-lg flex flex-col items-center justify-center gap-2">
+          <span>Tidak ada pesanan di kategori ini.</span>
+          <button type="button" class="px-3 py-1 bg-white border border-gray-200 text-sky-600 rounded text-xs font-semibold hover:bg-sky-50 transition" onclick="openCreateOrderModal()">
+            + Buat Pesanan Baru
+          </button>
+        </div>
+      `;
+    }
+
+    return filtered.map(item => {
+      let badgeHtml = '';
+      let actionButtons = '';
+
+      if (item.status === 'pending') {
+        badgeHtml = `<span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-amber-50 text-amber-700 border border-amber-200">📦 Siap Dikemas</span>`;
+        actionButtons = `
+          <button type="button" class="px-3 py-1.5 text-xs font-semibold rounded bg-sky-600 text-white hover:bg-sky-700 transition inline-flex items-center gap-1 shadow-xs" data-wf-transition="pack" data-id="${esc(item.id)}">
+            📦 Kemas Paket
+          </button>
+          <button type="button" class="px-2.5 py-1.5 text-xs font-semibold rounded bg-gray-100 text-gray-600 hover:bg-rose-50 hover:text-rose-700 transition" data-wf-transition="cancel" data-id="${esc(item.id)}" title="Batalkan pesanan">
+            ✕ Batal
+          </button>
+        `;
+      } else if (item.status === 'approved') {
+        badgeHtml = `<span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-blue-50 text-blue-700 border border-blue-200">🚚 Siap Dikirim</span>`;
+        actionButtons = `
+          <button type="button" class="px-3 py-1.5 text-xs font-semibold rounded bg-indigo-600 text-white hover:bg-indigo-700 transition inline-flex items-center gap-1 shadow-xs" data-wf-transition="ship" data-id="${esc(item.id)}">
+            🚚 Kirim Pesanan
+          </button>
+        `;
+      } else if (item.status === 'in_transit' || item.status === 'shipping') {
+        badgeHtml = `<span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-emerald-50 text-emerald-700 border border-emerald-200">📍 Dalam Pengiriman</span>`;
+        actionButtons = `
+          <button type="button" class="px-3 py-1.5 text-xs font-semibold rounded bg-emerald-600 text-white hover:bg-emerald-700 transition inline-flex items-center gap-1 shadow-sm" data-wf-transition="invoice" data-id="${esc(item.id)}">
+            📄 Terbitkan Faktur & Selesai
+          </button>
+        `;
+      } else if (item.status === 'invoiced') {
+        badgeHtml = `<span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-purple-50 text-purple-700 border border-purple-200">✅ Faktur Diterbitkan</span>`;
+        actionButtons = `
+          <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-200 inline-flex items-center gap-1">
+            ✓ Selesai · Stok Terpotong
+          </span>
+        `;
+      } else {
+        badgeHtml = `<span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-gray-100 text-gray-600">Dibatalkan</span>`;
+      }
+
+      return `
+        <div class="p-3.5 bg-white border border-gray-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs hover:border-gray-300 transition">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 mb-1 flex-wrap">
+              ${badgeHtml}
+              <strong class="text-xs font-bold text-gray-900">${esc(item.title || item.productName)}</strong>
+              ${item.invoiceNo ? `<span class="text-[10px] font-mono bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-bold">${esc(item.invoiceNo)}</span>` : ''}
+            </div>
+            <div class="text-xs text-gray-600">
+              <span class="font-bold text-gray-900">${esc(item.quantity)} ${esc(item.unit || 'unit')}</span> · ${esc(item.productName || item.sku)}
+            </div>
+            <div class="text-[11px] text-gray-500 mt-1 flex items-center gap-2 flex-wrap">
+              <span>📍 Rute: <strong class="text-gray-700">${esc(item.from || 'Gudang')}</strong> → <strong class="text-gray-700">${esc(item.to || item.customer || 'Pelanggan')}</strong></span>
+              ${item.courier ? `<span>🚚 Kurir: <strong class="text-gray-700">${esc(item.courier)} (${esc(item.trackingNo)})</strong></span>` : ''}
+              <span>🕒 ${timeAgo(item.createdAt)}</span>
+              ${item.notes ? `<span class="text-gray-400 italic">"${esc(item.notes)}"</span>` : ''}
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            ${actionButtons}
+          </div>
+        </div>
+      `;
+    }).join('');
+  };
+
+  modalFrame(
+    'Alur Aktivitas Penjualan & Distribusi',
+    'Kelola alur fisik: Pengemasan paket, pengiriman pesanan, hingga penerbitan faktur keluar.',
+    `
+      <div class="flex flex-col gap-3">
+        <!-- Actions Topbar inside Modal -->
+        <div class="flex items-center justify-between flex-wrap gap-2 pb-2 border-b border-gray-100">
+          <div class="flex items-center gap-1 p-1 bg-gray-100 rounded-lg text-xs overflow-x-auto" id="wfTabsNav">
+            <button type="button" class="px-2.5 py-1 font-semibold rounded-md transition ${activeTab==='all'?'bg-white text-gray-900 shadow-xs font-bold':'text-gray-500 hover:text-gray-900'}" data-wftab="all">
+              Semua (${approvals.length})
+            </button>
+            <button type="button" class="px-2.5 py-1 font-semibold rounded-md transition ${activeTab==='pending'?'bg-white text-amber-700 shadow-xs font-bold':'text-gray-500 hover:text-gray-900'}" data-wftab="pending">
+              Siap Dikemas (${pendingCount})
+            </button>
+            <button type="button" class="px-2.5 py-1 font-semibold rounded-md transition ${activeTab==='approved'?'bg-white text-blue-700 shadow-xs font-bold':'text-gray-500 hover:text-gray-900'}" data-wftab="approved">
+              Siap Dikirim (${approvedCount})
+            </button>
+            <button type="button" class="px-2.5 py-1 font-semibold rounded-md transition ${activeTab==='in_transit'?'bg-white text-emerald-700 shadow-xs font-bold':'text-gray-500 hover:text-gray-900'}" data-wftab="in_transit">
+              Dalam Pengiriman (${inTransitCount})
+            </button>
+            <button type="button" class="px-2.5 py-1 font-semibold rounded-md transition ${activeTab==='invoiced'?'bg-white text-purple-700 shadow-xs font-bold':'text-gray-500 hover:text-gray-900'}" data-wftab="invoiced">
+              Faktur Diterbitkan (${invoicedCount})
+            </button>
+          </div>
+          <button type="button" id="modalBtnCreateNewOrder" class="px-2.5 py-1 text-xs font-semibold rounded bg-sky-600 text-white hover:bg-sky-700 transition inline-flex items-center gap-1 shrink-0">
+            <span>+</span> Pesanan Baru
+          </button>
+        </div>
+
+        <!-- Orders List Container -->
+        <div class="space-y-2 max-h-[380px] overflow-y-auto pr-1" id="wfItemsList">
+          ${renderList(activeTab)}
+        </div>
+      </div>
+    `,
+    'Tutup'
+  );
+
+  const cancelBtn = $('.modal-foot .secondary');
+  if (cancelBtn) cancelBtn.style.display = 'none';
+  const closeBtn = $('#modalSubmit');
+  if (closeBtn) {
+    closeBtn.textContent = 'Selesai';
+    closeBtn.addEventListener('click', closeModal);
+  }
+
+  $('#modalBtnCreateNewOrder')?.addEventListener('click', () => {
+    closeModal();
+    openCreateOrderModal();
+  });
+
+  // Handle Tab Switching
+  $$('[data-wftab]', $('#modal')).forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.wftab;
+      $$('[data-wftab]', $('#modal')).forEach(b => {
+        const isCurrent = b.dataset.wftab === tab;
+        b.className = `px-2.5 py-1 font-semibold rounded-md transition ${isCurrent ? 'bg-white text-gray-900 shadow-xs font-bold' : 'text-gray-500 hover:text-gray-900'}`;
+      });
+      $('#wfItemsList').innerHTML = renderList(tab);
+      attachTransitionHandlers();
+    });
+  });
+
+  const attachTransitionHandlers = () => {
+    $$('[data-wf-transition]', $('#modal')).forEach(button => {
+      button.addEventListener('click', async () => {
+        const stage = button.dataset.wfTransition;
+        const id = button.dataset.id;
+        button.disabled = true;
+
+        let courier = '';
+        let trackingNo = '';
+
+        if (stage === 'ship') {
+          courier = window.prompt('Masukkan nama ekspedisi / kurir pengantar:', 'Kurir Internal');
+          if (courier === null) { button.disabled = false; return; }
+          trackingNo = window.prompt('Masukkan nomor resi / surat jalan (opsional):', `RESI-${Date.now().toString().slice(-6)}`);
+          if (trackingNo === null) { button.disabled = false; return; }
+        }
+
+        try {
+          await api(`/api/approvals/${encodeURIComponent(id)}/transition`, {
+            method: 'POST',
+            body: JSON.stringify({ stage, courier, trackingNo })
+          });
+          await refresh();
+          toast(
+            stage === 'pack' ? 'Pesanan berhasil dikemas dan kini Siap Dikirim.' :
+            stage === 'ship' ? 'Pesanan telah diserahkan ke kurir dan Dalam Pengiriman.' :
+            stage === 'invoice' ? 'Faktur resmi diterbitkan dan stok fisik otomatis terpotong!' :
+            'Pesanan dibatalkan.'
+          );
+          openDistributionWorkflowModal(
+            stage === 'pack' ? 'approved' :
+            stage === 'ship' ? 'in_transit' :
+            stage === 'invoice' ? 'invoiced' : 'all'
+          );
+        } catch (err) {
+          toast(err.message);
+          button.disabled = false;
+        }
+      });
+    });
+  };
+
+  attachTransitionHandlers();
+}
+
+window.openCreateOrderModal = openCreateOrderModal;
+window.openDistributionWorkflowModal = openDistributionWorkflowModal;
+
+// Event listeners for Sales & Distribution activity controls
+$('#btnNewOrderModal')?.addEventListener('click', () => openCreateOrderModal());
+$('#btnManageWorkflow')?.addEventListener('click', () => openDistributionWorkflowModal('all'));
+$('#cardToBePacked')?.addEventListener('click', () => openDistributionWorkflowModal('pending'));
+$('#cardToBeShipped')?.addEventListener('click', () => openDistributionWorkflowModal('approved'));
+$('#cardInTransit')?.addEventListener('click', () => openDistributionWorkflowModal('in_transit'));
+$('#cardInvoiced')?.addEventListener('click', () => openDistributionWorkflowModal('invoiced'));
+
+
 
 document.body.addEventListener('click', async e => {
   const edit = e.target.closest('[data-edit]');
