@@ -28,12 +28,28 @@ let activeExpFilter = 'all'; // 'all' (<60d) or 'urgent' (<30d)
 let activeMoversTab = 'top'; // 'top' or 'worst'
 
 async function api(url, options = {}) {
+  const token = localStorage.getItem('stokly_token');
+  const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
   const response = await fetch(url, {
+    credentials: options.credentials || 'include',
     ...options,
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+    headers
   });
-  const data = response.status === 204 ? null : await response.json();
-  if (!response.ok) throw new Error(data?.error || 'Permintaan gagal.');
+  const data = response.status === 204 ? null : await response.json().catch(() => null);
+  if (!response.ok) {
+    if (response.status === 401 && !url.includes('/api/auth/status') && !url.includes('/api/auth/login')) {
+      if (currentUser) {
+        localStorage.removeItem('stokly_token');
+        currentUser = null;
+        document.body.classList.add('auth-required');
+        if ($('#authScreen')) $('#authScreen').hidden = false;
+        showAuthMessage('Sesi Anda berakhir. Silakan masuk kembali.');
+      }
+    }
+    throw new Error(data?.error || 'Permintaan gagal.');
+  }
   return data;
 }
 
@@ -164,8 +180,9 @@ function renderOverview() {
   if ($('#statProducts')) $('#statProducts').textContent = filteredProducts.length.toLocaleString('id-ID');
   if ($('#prodUnconfirmed')) $('#prodUnconfirmed').textContent = unconfirmedCount.toLocaleString('id-ID');
 
-  // Active items percentage ring
-  const activePct = filteredProducts.length > 0 ? Math.round(((filteredProducts.length - outOfStock) / filteredProducts.length) * 100) : 0;
+  // Active items percentage ring (products with stock > 0)
+  const activeItemsCount = filteredProducts.filter(p => Number(p.stock) > 0).length;
+  const activePct = filteredProducts.length > 0 ? Math.round((activeItemsCount / filteredProducts.length) * 100) : 0;
   if ($('#zohoActivePct')) $('#zohoActivePct').textContent = `${activePct}%`;
   if ($('#zohoDonutArc')) {
     const circumference = 2 * Math.PI * 38; // ~238.76
@@ -173,6 +190,7 @@ function renderOverview() {
     $('#zohoDonutArc').style.strokeDasharray = `${circumference}`;
     $('#zohoDonutArc').style.strokeDashoffset = `${offset}`;
   }
+  if ($('#zohoActiveCount')) $('#zohoActiveCount').textContent = `${activeItemsCount} dari ${filteredProducts.length} produk`;
 
   // Fallback hidden elements
   if ($('#statValue')) $('#statValue').textContent = money(value);
@@ -931,9 +949,14 @@ function openProductForm(product = null) {
     `
   );
 
+  const form = $('#productForm');
+  form?.addEventListener('submit', e => { e.preventDefault(); $('#modalSubmit')?.click(); });
+
   $('#modalSubmit').addEventListener('click', async () => {
     const f = $('#productForm');
-    if (!f.reportValidity()) return;
+    if (!f || !f.reportValidity()) return;
+    const btn = $('#modalSubmit');
+    if (btn) btn.disabled = true;
     const d = Object.fromEntries(new FormData(f));
     for (const key of ['stock', 'minStock', 'cost']) d[key] = Number(d[key]) || 0;
     try {
@@ -946,6 +969,7 @@ function openProductForm(product = null) {
       toast(product ? 'Produk berhasil diperbarui.' : 'Produk berhasil ditambahkan.');
     } catch (e) {
       toast(e.message);
+      if (btn) btn.disabled = false;
     }
   });
 }
@@ -957,7 +981,7 @@ function openAdjustForm(product, quantity = null) {
     `Mutasi Stok`,
     `${product.name} · stok saat ini ${product.stock} ${product.unit}`,
     `
-      <form id="adjustForm" class="form-grid">
+      <form id="adjustForm" class="form-grid" onsubmit="return false;">
         <div class="form-field"><label>Jenis mutasi</label><select name="direction"><option value="in">Stok masuk</option><option value="out">Stok keluar</option></select></div>
         <div class="form-field"><label>Jumlah (${esc(product.unit)})</label><input name="quantity" type="number" min="1" step="1" value="${initial}" required></div>
         <div class="form-field full"><label>Catatan</label><input name="reason" value="Penerimaan / restock" placeholder="Contoh: Pembelian PO-001"></div>
@@ -966,9 +990,14 @@ function openAdjustForm(product, quantity = null) {
     `,
     'Simpan Mutasi'
   );
+  const adjForm = $('#adjustForm');
+  adjForm?.addEventListener('submit', e => { e.preventDefault(); $('#modalSubmit')?.click(); });
+
   $('#modalSubmit').addEventListener('click', async () => {
     const f = $('#adjustForm');
-    if (!f.reportValidity()) return;
+    if (!f || !f.reportValidity()) return;
+    const btn = $('#modalSubmit');
+    if (btn) btn.disabled = true;
     const d = Object.fromEntries(new FormData(f));
     const delta = (d.direction === 'out' ? -1 : 1) * Number(d.quantity);
     try {
@@ -981,6 +1010,7 @@ function openAdjustForm(product, quantity = null) {
       toast('Mutasi stok berhasil disimpan.');
     } catch (e) {
       toast(e.message);
+      if (btn) btn.disabled = false;
     }
   });
 }
@@ -1107,7 +1137,7 @@ function openSessionForm() {
     'Mulai Stock Opname',
     'Buat sesi penghitungan stok fisik baru.',
     `
-      <form id="sessionForm" class="form-grid">
+      <form id="sessionForm" class="form-grid" onsubmit="return false;">
         <div class="form-field full"><label>Nama sesi *</label><input name="name" required value="Stock Opname ${new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'long'}).format(new Date())}"></div>
         <div class="form-field"><label>Lokasi</label><input name="location" value="Gudang Utama"></div>
         <div class="form-field"><label>Penanggung jawab</label><input name="createdBy" value="${esc(currentUser?.name || 'Admin Gudang')}"></div>
@@ -1116,9 +1146,15 @@ function openSessionForm() {
     `,
     'Buat Sesi'
   );
+
+  const sessForm = $('#sessionForm');
+  sessForm?.addEventListener('submit', e => { e.preventDefault(); $('#modalSubmit')?.click(); });
+
   $('#modalSubmit').addEventListener('click', async () => {
     const f = $('#sessionForm');
-    if (!f.reportValidity()) return;
+    if (!f || !f.reportValidity()) return;
+    const btn = $('#modalSubmit');
+    if (btn) btn.disabled = true;
     try {
       const data = await api('/api/sessions', {
         method: 'POST',
@@ -1131,6 +1167,7 @@ function openSessionForm() {
       toast('Sesi stock opname dimulai.');
     } catch (e) {
       toast(e.message);
+      if (btn) btn.disabled = false;
     }
   });
 }
@@ -1183,19 +1220,41 @@ async function saveSessionCounts(id, complete) {
     toast('Masukkan setidaknya satu jumlah fisik.');
     return;
   }
+  const submitBtn = $('#modalSubmit');
+  const finishBtn = $('#finishSession');
+  if (submitBtn) submitBtn.disabled = true;
+  if (finishBtn) finishBtn.disabled = true;
+
   try {
-    for (const input of entries) {
-      await api(`/api/sessions/${encodeURIComponent(id)}/item`, {
+    const items = entries.map(input => ({
+      productId: input.dataset.countProduct,
+      counted: Number(input.value)
+    }));
+
+    try {
+      await api(`/api/sessions/${encodeURIComponent(id)}/items`, {
         method: 'POST',
-        body: JSON.stringify({ productId: input.dataset.countProduct, counted: Number(input.value) })
+        body: JSON.stringify({ items, complete })
       });
+    } catch (batchErr) {
+      // Fallback to sequential updates if items endpoint is unavailable
+      for (const input of entries) {
+        await api(`/api/sessions/${encodeURIComponent(id)}/item`, {
+          method: 'POST',
+          body: JSON.stringify({ productId: input.dataset.countProduct, counted: Number(input.value) })
+        });
+      }
+      if (complete) await api(`/api/sessions/${encodeURIComponent(id)}/complete`, { method: 'POST' });
     }
-    if (complete) await api(`/api/sessions/${encodeURIComponent(id)}/complete`, { method: 'POST' });
+
     closeModal();
     await refresh();
     toast(complete ? 'Stock opname selesai dan stok tersedia diperbarui.' : 'Progres opname tersimpan. Anda bisa melanjutkannya nanti.');
   } catch (e) {
     toast(e.message);
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+    if (finishBtn) finishBtn.disabled = false;
   }
 }
 
@@ -1412,6 +1471,9 @@ function showAuth() {
 
 async function enterApp(user) {
   currentUser = user;
+  if (user?.token) {
+    localStorage.setItem('stokly_token', user.token);
+  }
   const isAdmin = user.role?.toLowerCase() === 'admin';
   document.body.classList.remove('auth-required');
   if ($('#authScreen')) $('#authScreen').hidden = true;
@@ -1558,6 +1620,7 @@ $('#authForm').addEventListener('submit', async e => {
   const endpoint = authMode === 'register' ? '/api/auth/register' : '/api/auth/login';
   try {
     const result = await api(endpoint, { method: 'POST', body: JSON.stringify(data) });
+    if (result.token) localStorage.setItem('stokly_token', result.token);
     form.reset();
     await enterApp(result.user);
     toast(`Selamat datang, ${result.user.name}.`);
@@ -1571,6 +1634,7 @@ $('#adminSetupForm').addEventListener('submit', async e => {
   const form = e.currentTarget;
   try {
     const result = await api('/api/auth/setup', { method: 'POST', body: JSON.stringify(Object.fromEntries(new FormData(form))) });
+    if (result.token) localStorage.setItem('stokly_token', result.token);
     await enterApp(result.user);
     toast('Akun admin berhasil dibuat.');
   } catch (error) {
@@ -1588,6 +1652,7 @@ async function logout(event) {
   });
   try {
     await api('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+    localStorage.removeItem('stokly_token');
     currentUser = null;
     document.body.classList.add('auth-required');
     $('#authScreen').hidden = false;
@@ -1595,7 +1660,11 @@ async function logout(event) {
     setAuthMode('login');
     toast('Anda sudah keluar.');
   } catch (error) {
-    toast(`Gagal keluar: ${error.message}`);
+    localStorage.removeItem('stokly_token');
+    currentUser = null;
+    document.body.classList.add('auth-required');
+    $('#authScreen').hidden = false;
+    toast(`Keluar: ${error.message}`);
   } finally {
     buttons.forEach(button => {
       button.disabled = false;
