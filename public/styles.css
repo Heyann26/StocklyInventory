@@ -1155,6 +1155,21 @@ button, a, select, input {
   touch-action: manipulation;
 }
 
+/* Tablet Landscape (901px - 1180px) */
+@media (min-width: 901px) and (max-width: 1180px) {
+  .sidebar {
+    width: 215px !important;
+  }
+  .main {
+    margin-left: 215px !important;
+    padding: 0 16px 32px !important;
+  }
+  .topbar {
+    margin: 0 -16px 16px !important;
+    padding: 0 16px !important;
+  }
+}
+
 /* Responsive Overhaul for Mobile & Tablet (iOS & Android) */
 @media (max-width: 900px) {
   .sidebar {
