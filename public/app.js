@@ -638,6 +638,9 @@ function renderProducts() {
       <td class="text-center">${badge(p)}</td>
       <td class="text-right">
         <div class="row-actions">
+          <button class="table-action" data-barcode="${esc(p.id)}" title="Cetak Label Barcode & QR">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
+          </button>
           <button class="table-action" data-adjust="${esc(p.id)}" title="Sesuaikan Stok (Masuk/Keluar)">
             <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
           </button>
@@ -1302,7 +1305,538 @@ document.addEventListener('keydown', e => {
   }
 });
 
+// Code 128 Pattern Table for Standard Barcode Generation
+const CODE128_PATTERNS = ["212222","222122","222221","121223","121322","131222","122213","122312","132212","221213","221312","231212","112232","122132","122231","113222","123122","123221","223211","221132","221231","213212","223112","312131","311222","321122","321221","312212","322112","322211","212123","212321","232121","111323","131123","131321","112313","132113","132311","211313","231113","231311","112133","112331","132131","113123","113321","133121","313121","211331","231131","213113","213311","213131","311123","311321","331121","312113","312311","332111","314111","221411","431111","111224","111422","121124","121421","141122","141221","112214","112412","122114","122411","142112","142211","241211","221114","413111","241112","134111","111242","121142","121241","114212","124112","124211","411212","421112","421211","212141","214121","412121","111143","111341","131141","114113","114311","411113","411311","113141","114131","311141","411131","211412","211214","211232","2331112"];
+
+function generateCode128Svg(text, height = 44, barWidth = 1.8) {
+  const clean = String(text || '').trim();
+  if (!clean) return '';
+  const codes = [104];
+  let checksum = 104;
+  for (let i = 0; i < clean.length; i++) {
+    const code = clean.charCodeAt(i) - 32;
+    if (code >= 0 && code <= 95) {
+      codes.push(code);
+      checksum += code * (i + 1);
+    }
+  }
+  codes.push(checksum % 103);
+  codes.push(106);
+  let x = 12;
+  let rects = '';
+  for (const c of codes) {
+    const p = CODE128_PATTERNS[c];
+    if (!p) continue;
+    for (let j = 0; j < p.length; j++) {
+      const w = parseInt(p[j], 10) * barWidth;
+      if (j % 2 === 0) rects += `<rect x="${x.toFixed(1)}" y="0" width="${w.toFixed(1)}" height="${height}" fill="#000"/>`;
+      x += w;
+    }
+  }
+  x += 12;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${Math.ceil(x)} ${height + 16}" style="max-width:100%;height:auto;display:block;margin:0 auto">${rects}<text x="${(x/2).toFixed(1)}" y="${height + 13}" font-family="monospace" font-size="11" font-weight="bold" text-anchor="middle" fill="#111">${esc(clean)}</text></svg>`;
+}
+
+// Feature 2: Modal Cetak Label Barcode & QR Code Produk
+function openBarcodeLabelModal(product) {
+  if (!product) return;
+  const storeName = currentUser?.storeName || 'STOCKLY INVENTORY';
+  
+  modalFrame(
+    `Cetak Label Barcode & QR Produk`,
+    `${product.name} · SKU: ${product.sku}`,
+    `
+      <div class="flex flex-col gap-3">
+        <div class="print-toolbar">
+          <div class="flex flex-wrap items-center gap-2 text-xs">
+            <label class="font-semibold text-gray-700">Tipe:</label>
+            <select id="labelBarcodeType" class="bg-white border border-gray-300 rounded px-2 py-1 text-xs">
+              <option value="barcode">Barcode (Code 128)</option>
+              <option value="qr">QR Code</option>
+            </select>
+
+            <label class="font-semibold text-gray-700 ml-1">Ukuran:</label>
+            <select id="labelSizeSelect" class="bg-white border border-gray-300 rounded px-2 py-1 text-xs">
+              <option value="standard">40 x 30 mm (Label Produk)</option>
+              <option value="medium">50 x 30 mm (Label Kemasan)</option>
+              <option value="large">70 x 40 mm (Label Rak Gudang)</option>
+            </select>
+
+            <label class="font-semibold text-gray-700 ml-1">Jumlah:</label>
+            <select id="labelQuantitySelect" class="bg-white border border-gray-300 rounded px-2 py-1 text-xs">
+              <option value="1">1 Label</option>
+              <option value="4">4 Label</option>
+              <option value="8">8 Label</option>
+              <option value="12">12 Label (1 Lembar)</option>
+            </select>
+          </div>
+          <button type="button" id="btnPrintBarcodeLabels" class="button primary px-3 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm">
+            🖨 Cetak Label
+          </button>
+        </div>
+
+        <div class="print-preview-container">
+          <div class="label-preview-grid" id="labelPreviewGrid"></div>
+        </div>
+      </div>
+    `,
+    'Tutup'
+  );
+
+  const grid = $('#labelPreviewGrid');
+  const typeSelect = $('#labelBarcodeType');
+  const sizeSelect = $('#labelSizeSelect');
+  const qtySelect = $('#labelQuantitySelect');
+
+  const renderLabels = () => {
+    const type = typeSelect?.value || 'barcode';
+    const size = sizeSelect?.value || 'standard';
+    const qty = Number(qtySelect?.value || 1);
+    const sku = product.sku || 'SKU-000';
+    const priceFormatted = product.cost ? money(product.cost) : '';
+
+    const barcodeSvg = generateCode128Svg(sku, size === 'large' ? 52 : 40, size === 'large' ? 2 : 1.6);
+    const qrSvg = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(sku)}" alt="QR" width="84" height="84" class="mx-auto my-1" onerror="this.outerHTML='<div class=\\'font-mono text-xs font-bold p-2\\'>${esc(sku)}</div>'">`;
+
+    const codeHtml = type === 'barcode' ? barcodeSvg : qrSvg;
+
+    let cards = '';
+    for (let i = 0; i < qty; i++) {
+      cards += `
+        <div class="barcode-label-card" style="${size === 'large' ? 'padding:14px; min-width:210px' : ''}">
+          <span class="lbl-store">${esc(storeName)}</span>
+          <strong class="lbl-title">${esc(product.name)}</strong>
+          <div class="my-1 w-full flex justify-center">${codeHtml}</div>
+          <div class="flex items-center justify-between w-full px-1 mt-1 text-[10px] text-gray-500">
+            <span>${esc(product.location || 'Gudang')}</span>
+            ${priceFormatted ? `<strong class="lbl-price">${priceFormatted}</strong>` : ''}
+          </div>
+        </div>
+      `;
+    }
+    if (grid) grid.innerHTML = cards;
+  };
+
+  typeSelect?.addEventListener('change', renderLabels);
+  sizeSelect?.addEventListener('change', renderLabels);
+  qtySelect?.addEventListener('change', renderLabels);
+  renderLabels();
+
+  $('#btnPrintBarcodeLabels')?.addEventListener('click', () => {
+    window.print();
+  });
+  $('#modalSubmit')?.addEventListener('click', closeModal);
+}
+
+// Features 1 & 5: Modal Cetak Surat Jalan & Resi Pengiriman (A4 & Thermal 58mm/80mm)
+function openPrintReceiptModal(item) {
+  if (!item) return;
+  const storeName = currentUser?.storeName || 'STOCKLY INVENTORY';
+  const storePhone = currentUser?.storePhone || '';
+  const storeAddress = currentUser?.storeAddress || '';
+  const storeFooter = currentUser?.storeFooter || 'Barang telah diterima dalam keadaan baik dan lengkap.';
+  const docDate = new Date(item.createdAt || Date.now()).toLocaleDateString('id-ID', {
+    day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+  const tracking = item.trackingNo || `RESI-${Date.now().toString().slice(-6)}`;
+  const invoice = item.invoiceNo || (item.notes ? item.notes : `SJ-${item.id}`);
+  const courier = item.courier || 'Kurir Internal';
+  const recipient = item.to || item.customer || 'Pelanggan';
+  const sender = item.from || 'Gudang Utama';
+
+  modalFrame(
+    'Cetak Dokumen Pengiriman & Resi',
+    'Pilih format Surat Jalan Resmi (A4) atau Struk Thermal Kompak (58mm/80mm).',
+    `
+      <div class="flex flex-col gap-3">
+        <div class="print-toolbar">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold text-gray-700">Format:</span>
+            <div class="flex bg-gray-200 p-0.5 rounded text-xs" id="printFormatToggle">
+              <button type="button" class="px-2.5 py-1 rounded bg-white text-gray-900 font-semibold shadow-xs" data-mode="a4">📄 Surat Jalan (A4)</button>
+              <button type="button" class="px-2.5 py-1 rounded text-gray-600 hover:text-gray-900 font-medium" data-mode="thermal58">🧾 Thermal 58mm</button>
+              <button type="button" class="px-2.5 py-1 rounded text-gray-600 hover:text-gray-900 font-medium" data-mode="thermal80">🧾 Thermal 80mm</button>
+            </div>
+          </div>
+          <button type="button" id="btnExecutePrint" class="button primary px-3 py-1.5 text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm">
+            🖨 Cetak Sekarang
+          </button>
+        </div>
+
+        <div class="print-preview-container">
+          <!-- A4 SURAT JALAN -->
+          <div id="printA4View" class="surat-jalan-sheet">
+            <div class="sj-header">
+              <div class="sj-brand">
+                <h2>${esc(storeName)}</h2>
+                ${storeAddress ? `<p>${esc(storeAddress)}</p>` : ''}
+                ${storePhone ? `<p>Telp / WA: ${esc(storePhone)}</p>` : ''}
+              </div>
+              <div class="sj-doc-badge">
+                <h1>SURAT JALAN</h1>
+                <div class="badge-meta">No. Resi: <strong>${esc(tracking)}</strong></div>
+                <div class="badge-meta">Tanggal: ${docDate}</div>
+              </div>
+            </div>
+
+            <div class="sj-info-grid">
+              <table>
+                <tr><td class="lbl">Tujuan</td><td>: <strong>${esc(recipient)}</strong></td></tr>
+                <tr><td class="lbl">Asal Barang</td><td>: ${esc(sender)}</td></tr>
+                <tr><td class="lbl">Referensi/PO</td><td>: ${esc(invoice)}</td></tr>
+              </table>
+              <table>
+                <tr><td class="lbl">Ekspedisi</td><td>: <strong>${esc(courier)}</strong></td></tr>
+                <tr><td class="lbl">Petugas</td><td>: ${esc(item.requester || currentUser?.name || 'Admin')}</td></tr>
+                <tr><td class="lbl">Status</td><td>: ${esc(item.status === 'invoiced' ? 'Faktur Diterbitkan (Lunas)' : 'Dalam Pengiriman')}</td></tr>
+              </table>
+            </div>
+
+            <table class="sj-table">
+              <thead>
+                <tr>
+                  <th style="width:30px">No</th>
+                  <th>Kode / SKU</th>
+                  <th>Nama Barang / Produk</th>
+                  <th style="text-align:right">Jumlah</th>
+                  <th>Satuan</th>
+                  <th>Keterangan</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1</td>
+                  <td><strong class="sku">${esc(item.sku || '-')}</strong></td>
+                  <td><strong>${esc(item.productName || item.title || '-')}</strong></td>
+                  <td style="text-align:right; font-weight:bold">${Number(item.quantity)}</td>
+                  <td>${esc(item.unit || 'unit')}</td>
+                  <td>${esc(item.notes || 'Pengiriman barang inventaris')}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="sj-signatures">
+              <div class="sj-sig-box">
+                <span>Pengirim / Gudang</span>
+                <div class="line">${esc(item.requester || currentUser?.name || 'Petugas Gudang')}</div>
+              </div>
+              <div class="sj-sig-box">
+                <span>Ekspedisi / Kurir</span>
+                <div class="line">${esc(courier)}</div>
+              </div>
+              <div class="sj-sig-box">
+                <span>Penerima Barang</span>
+                <div class="line">(....................................)</div>
+              </div>
+            </div>
+
+            <div class="sj-footer-note">
+              ${esc(storeFooter)}
+            </div>
+          </div>
+
+          <!-- THERMAL 58mm / 80mm VIEW -->
+          <div id="printThermalView" class="thermal-sheet width-58 hidden">
+            <div class="thermal-center">
+              <h3>${esc(storeName)}</h3>
+              ${storeAddress ? `<p style="font-size:10px">${esc(storeAddress)}</p>` : ''}
+              ${storePhone ? `<p style="font-size:10px">WA: ${esc(storePhone)}</p>` : ''}
+              <div class="thermal-divider"></div>
+              <strong style="text-transform:uppercase">BUKTI PENGIRIMAN / RESI</strong>
+            </div>
+            <div class="thermal-divider"></div>
+            <div class="thermal-row"><span>No. Resi:</span><strong>${esc(tracking)}</strong></div>
+            <div class="thermal-row"><span>Tanggal:</span><span>${docDate.slice(0, 16)}</span></div>
+            <div class="thermal-row"><span>Kurir:</span><span>${esc(courier)}</span></div>
+            <div class="thermal-row"><span>Tujuan:</span><strong>${esc(recipient)}</strong></div>
+            <div class="thermal-row"><span>Asal:</span><span>${esc(sender)}</span></div>
+            <div class="thermal-divider"></div>
+            <div class="thermal-row bold"><span>PRODUK</span><span>QTY</span></div>
+            <div class="thermal-divider"></div>
+            <div class="thermal-row">
+              <span>${esc(item.productName || item.sku)}</span>
+              <strong>${item.quantity} ${esc(item.unit || 'pcs')}</strong>
+            </div>
+            <div style="font-size:10px; color:#555">[SKU: ${esc(item.sku || '-')}]</div>
+            <div class="thermal-divider"></div>
+            <div class="thermal-row bold">
+              <span>TOTAL UNIT</span>
+              <span>${item.quantity} ${esc(item.unit || 'pcs')}</span>
+            </div>
+            <div class="thermal-divider"></div>
+            <div class="thermal-center" style="margin-top:12px">
+              <p style="font-size:10px">Tanda Terima:</p>
+              <br><br>
+              <p>(...............................)</p>
+              <p style="font-size:9px; margin-top:6px">${esc(storeFooter)}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `,
+    'Tutup'
+  );
+
+  const a4View = $('#printA4View');
+  const thermalView = $('#printThermalView');
+  const toggleButtons = $$('#printFormatToggle button');
+
+  toggleButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      toggleButtons.forEach(b => {
+        b.className = 'px-2.5 py-1 rounded text-gray-600 hover:text-gray-900 font-medium';
+      });
+      btn.className = 'px-2.5 py-1 rounded bg-white text-gray-900 font-semibold shadow-xs';
+      const mode = btn.dataset.mode;
+      if (mode === 'a4') {
+        a4View.classList.remove('hidden');
+        thermalView.classList.add('hidden');
+      } else if (mode === 'thermal58') {
+        a4View.classList.add('hidden');
+        thermalView.classList.remove('hidden');
+        thermalView.className = 'thermal-sheet width-58';
+      } else if (mode === 'thermal80') {
+        a4View.classList.add('hidden');
+        thermalView.classList.remove('hidden');
+        thermalView.className = 'thermal-sheet width-80';
+      }
+    });
+  });
+
+  $('#btnExecutePrint')?.addEventListener('click', () => {
+    window.print();
+  });
+  $('#modalSubmit')?.addEventListener('click', closeModal);
+}
+
+// Feature 3: Modal Import Massal CSV
+function openImportCsvModal() {
+  modalFrame(
+    'Import Produk Massal via CSV / Excel',
+    'Unggah file CSV untuk menambahkan ratusan produk ke inventaris secara cepat.',
+    `
+      <div class="flex flex-col gap-3 text-xs">
+        <div class="p-3 bg-blue-50/70 border border-blue-200 rounded-lg flex items-center justify-between gap-3">
+          <div>
+            <strong class="text-blue-900 block font-bold">Langkah 1: Gunakan Template CSV Resmi</strong>
+            <span class="text-blue-700 text-[11px]">Unduh contoh format CSV yang sudah disesuaikan dengan kolom Stockly.</span>
+          </div>
+          <button type="button" id="btnDownloadCsvTemplate" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded shadow-xs shrink-0 transition">
+            📥 Unduh Template CSV
+          </button>
+        </div>
+
+        <div class="p-4 border-2 border-dashed border-gray-300 hover:border-brand-500 rounded-lg text-center transition bg-gray-50/50 cursor-pointer" id="dropCsvZone">
+          <input type="file" id="csvFileInput" accept=".csv,text/csv" class="hidden">
+          <svg class="w-8 h-8 text-gray-400 mx-auto mb-1" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          <strong class="block text-gray-800 font-semibold">Pilih atau Seret File CSV ke Sini</strong>
+          <span class="text-[11px] text-gray-500">Maksimal 1.000 produk per file (.csv UTF-8)</span>
+          <div id="selectedFileName" class="mt-2 text-xs font-bold text-brand-600 hidden"></div>
+        </div>
+
+        <label class="flex items-center gap-2 cursor-pointer mt-1">
+          <input type="checkbox" id="overwriteExistingSku" class="rounded border-gray-300 text-brand-600">
+          <span class="text-gray-700">Perbarui data stok & harga jika SKU sudah terdaftar</span>
+        </label>
+
+        <div id="csvPreviewContainer" class="hidden">
+          <div class="flex items-center justify-between mb-1.5">
+            <strong class="text-gray-900" id="csvPreviewTitle">Preview Data Produk</strong>
+            <span class="text-[11px] text-gray-500" id="csvTotalCount">0 produk terdeteksi</span>
+          </div>
+          <div class="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
+            <table class="table" style="font-size:11px">
+              <thead>
+                <tr>
+                  <th>Nama Produk</th>
+                  <th>SKU</th>
+                  <th>Kategori</th>
+                  <th>Lokasi</th>
+                  <th>Stok</th>
+                  <th>Satuan</th>
+                  <th>Harga Modal</th>
+                </tr>
+              </thead>
+              <tbody id="csvPreviewRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    `,
+    'Mulai Import Produk',
+    'Batal'
+  );
+
+  let parsedProducts = [];
+  const dropZone = $('#dropCsvZone');
+  const fileInput = $('#csvFileInput');
+  const fileNameDisplay = $('#selectedFileName');
+  const previewContainer = $('#csvPreviewContainer');
+  const previewRows = $('#csvPreviewRows');
+  const totalCount = $('#csvTotalCount');
+  const submitBtn = $('#modalSubmit');
+
+  if (submitBtn) submitBtn.disabled = true;
+
+  $('#btnDownloadCsvTemplate')?.addEventListener('click', () => {
+    const csvContent = 'Nama Produk,SKU,Kategori,Lokasi,Satuan,Stok,Stok Minimum,Harga Modal,Kedaluwarsa\r\n' +
+      'Kopi Robusta Lampung 250g,KOP-ROB-250,Minuman,Rak A-01,pcs,50,10,45000,2027-01-01\r\n' +
+      'Gula Pasir Kristal 1kg,GUL-PAS-1KG,Sembako,Rak B-02,kg,100,20,16500,2027-06-30\r\n' +
+      'Minyak Goreng Sawit 2L,MYK-GOR-2L,Sembako,Rak B-01,botol,30,10,34000,2027-12-31\r\n';
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'template_produk_stockly.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  dropZone?.addEventListener('click', () => fileInput?.click());
+  dropZone?.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('border-brand-500'); });
+  dropZone?.addEventListener('dragleave', () => dropZone.classList.remove('border-brand-500'));
+  dropZone?.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('border-brand-500');
+    if (e.dataTransfer.files.length) handleCsvFile(e.dataTransfer.files[0]);
+  });
+  fileInput?.addEventListener('change', () => {
+    if (fileInput.files.length) handleCsvFile(fileInput.files[0]);
+  });
+
+  const handleCsvFile = (file) => {
+    if (!file) return;
+    if (fileNameDisplay) {
+      fileNameDisplay.textContent = `📄 ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+      fileNameDisplay.classList.remove('hidden');
+    }
+    const reader = new FileReader();
+    reader.onload = e => parseCsv(e.target.result);
+    reader.readAsText(file, 'UTF-8');
+  };
+
+  const parseCsv = (text) => {
+    const lines = text.split(/\r\n|\n|\r/).filter(l => l.trim().length > 0);
+    if (lines.length < 2) {
+      toast('File CSV tidak memiliki baris data produk.');
+      return;
+    }
+    const delimiter = lines[0].includes(';') ? ';' : ',';
+    const headers = lines[0].split(delimiter).map(h => h.trim().toLowerCase().replace(/^["']|["']$/g, ''));
+    
+    const findIdx = (keywords) => headers.findIndex(h => keywords.some(k => h.includes(k)));
+    const nameIdx = findIdx(['nama', 'name', 'produk', 'item', 'barang']);
+    const skuIdx = findIdx(['sku', 'kode', 'barcode', 'code']);
+    const catIdx = findIdx(['kategori', 'category', 'jenis']);
+    const locIdx = findIdx(['lokasi', 'location', 'rak', 'gudang']);
+    const unitIdx = findIdx(['satuan', 'unit', 'uom']);
+    const stockIdx = findIdx(['stok', 'stock', 'qty', 'jumlah']);
+    const minStockIdx = findIdx(['minimum', 'min', 'min_stock']);
+    const costIdx = findIdx(['harga', 'modal', 'cost', 'price', 'beli']);
+    const expIdx = findIdx(['kadaluwarsa', 'kedaluwarsa', 'expired', 'expiry']);
+
+    if (nameIdx === -1 || skuIdx === -1) {
+      toast('Kolom "Nama Produk" dan "SKU" wajib ada pada header CSV.');
+      return;
+    }
+
+    parsedProducts = [];
+    for (let i = 1; i < lines.length; i++) {
+      const row = lines[i].split(delimiter).map(c => c.trim().replace(/^["']|["']$/g, ''));
+      const name = row[nameIdx] || '';
+      const sku = row[skuIdx] || '';
+      if (!name || !sku) continue;
+
+      parsedProducts.push({
+        name,
+        sku,
+        category: catIdx !== -1 && row[catIdx] ? row[catIdx] : 'Lainnya',
+        location: locIdx !== -1 && row[locIdx] ? row[locIdx] : 'Belum diatur',
+        unit: unitIdx !== -1 && row[unitIdx] ? row[unitIdx] : 'pcs',
+        stock: stockIdx !== -1 ? Math.max(0, parseInt(row[stockIdx], 10) || 0) : 0,
+        minStock: minStockIdx !== -1 ? Math.max(0, parseInt(row[minStockIdx], 10) || 10) : 10,
+        cost: costIdx !== -1 ? Math.max(0, parseInt(row[costIdx]?.replace(/[^0-9]/g, ''), 10) || 0) : 0,
+        expiryDate: expIdx !== -1 && row[expIdx] ? row[expIdx] : ''
+      });
+    }
+
+    if (!parsedProducts.length) {
+      toast('Tidak ada data produk yang valid untuk diimport.');
+      return;
+    }
+
+    if (previewContainer) previewContainer.classList.remove('hidden');
+    if (totalCount) totalCount.textContent = `${parsedProducts.length} produk siap diimport`;
+    if (previewRows) {
+      previewRows.innerHTML = parsedProducts.slice(0, 10).map(p => `
+        <tr>
+          <td><strong class="text-gray-900">${esc(p.name)}</strong></td>
+          <td><span class="sku">${esc(p.sku)}</span></td>
+          <td>${esc(p.category)}</td>
+          <td>${esc(p.location)}</td>
+          <td>${p.stock}</td>
+          <td>${esc(p.unit)}</td>
+          <td>${money(p.cost)}</td>
+        </tr>
+      `).join('') + (parsedProducts.length > 10 ? `<tr><td colspan="7" class="text-center text-gray-500 py-1 italic">... dan ${parsedProducts.length - 10} produk lainnya</td></tr>` : '');
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = `Import ${parsedProducts.length} Produk`;
+    }
+  };
+
+  submitBtn?.addEventListener('click', async () => {
+    if (!parsedProducts.length) return;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Mengimport...';
+    const overwrite = $('#overwriteExistingSku')?.checked || false;
+
+    try {
+      const res = await api('/api/products/bulk', {
+        method: 'POST',
+        body: JSON.stringify({ products: parsedProducts, overwrite })
+      });
+      closeModal();
+      await refresh();
+      toast(`Sukses! ${res.count || parsedProducts.length} produk berhasil diimport.`);
+    } catch (err) {
+      toast(err.message || 'Gagal mengimport produk');
+      submitBtn.disabled = false;
+      submitBtn.textContent = `Import ${parsedProducts.length} Produk`;
+    }
+  });
+}
+
+// Feature 4: Profil Toko & Usaha Submit Handler
+$('#storeProfileForm')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = $('#btnSaveStoreProfile');
+  if (btn) btn.disabled = true;
+  const storeName = $('#settingStoreName')?.value.trim();
+  const storePhone = $('#settingStorePhone')?.value.trim();
+  const storeAddress = $('#settingStoreAddress')?.value.trim();
+  const storeFooter = $('#settingStoreFooter')?.value.trim();
+  try {
+    const res = await api('/api/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify({ storeName, storePhone, storeAddress, storeFooter })
+    });
+    if (res.user) {
+      currentUser = { ...currentUser, ...res.user };
+      if ($('#topWorkspaceName') && currentUser.storeName) $('#topWorkspaceName').textContent = currentUser.storeName;
+    }
+    toast('Profil toko & usaha berhasil disimpan!');
+  } catch (err) {
+    toast(err.message || 'Gagal menyimpan profil usaha');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+});
+
 $('#addProductBtn')?.addEventListener('click', () => openProductForm());
+$('#importBtn')?.addEventListener('click', openImportCsvModal);
 $('#productSearch')?.addEventListener('input', renderProducts);
 $('#categoryFilter')?.addEventListener('change', renderProducts);
 $('#stockFilter')?.addEventListener('change', renderProducts);
@@ -1519,6 +2053,9 @@ function openDistributionWorkflowModal(activeTab = 'all') {
       if (item.status === 'pending') {
         badgeHtml = `<span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-amber-50 text-amber-700 border border-amber-200">📦 Siap Dikemas</span>`;
         actionButtons = `
+          <button type="button" class="px-2.5 py-1.5 text-xs font-semibold rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition inline-flex items-center gap-1" data-print-receipt="${esc(item.id)}" title="Cetak Surat Jalan & Struk Thermal">
+            🖨 Surat Jalan
+          </button>
           <button type="button" class="px-3 py-1.5 text-xs font-semibold rounded bg-sky-600 text-white hover:bg-sky-700 transition inline-flex items-center gap-1 shadow-xs" data-wf-transition="pack" data-id="${esc(item.id)}">
             📦 Kemas Paket
           </button>
@@ -1529,6 +2066,9 @@ function openDistributionWorkflowModal(activeTab = 'all') {
       } else if (item.status === 'approved') {
         badgeHtml = `<span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-blue-50 text-blue-700 border border-blue-200">🚚 Siap Dikirim</span>`;
         actionButtons = `
+          <button type="button" class="px-2.5 py-1.5 text-xs font-semibold rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition inline-flex items-center gap-1" data-print-receipt="${esc(item.id)}" title="Cetak Surat Jalan & Struk Thermal">
+            🖨 Surat Jalan
+          </button>
           <button type="button" class="px-3 py-1.5 text-xs font-semibold rounded bg-indigo-600 text-white hover:bg-indigo-700 transition inline-flex items-center gap-1 shadow-xs" data-wf-transition="ship" data-id="${esc(item.id)}">
             🚚 Kirim Pesanan
           </button>
@@ -1536,6 +2076,9 @@ function openDistributionWorkflowModal(activeTab = 'all') {
       } else if (item.status === 'in_transit' || item.status === 'shipping') {
         badgeHtml = `<span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-emerald-50 text-emerald-700 border border-emerald-200">📍 Dalam Pengiriman</span>`;
         actionButtons = `
+          <button type="button" class="px-2.5 py-1.5 text-xs font-semibold rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition inline-flex items-center gap-1" data-print-receipt="${esc(item.id)}" title="Cetak Resi & Surat Jalan">
+            🖨 Cetak Resi
+          </button>
           <button type="button" class="px-3 py-1.5 text-xs font-semibold rounded bg-emerald-600 text-white hover:bg-emerald-700 transition inline-flex items-center gap-1 shadow-sm" data-wf-transition="invoice" data-id="${esc(item.id)}">
             📄 Terbitkan Faktur & Selesai
           </button>
@@ -1543,6 +2086,9 @@ function openDistributionWorkflowModal(activeTab = 'all') {
       } else if (item.status === 'invoiced') {
         badgeHtml = `<span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-purple-50 text-purple-700 border border-purple-200">✅ Faktur Diterbitkan</span>`;
         actionButtons = `
+          <button type="button" class="px-2.5 py-1.5 text-xs font-semibold rounded bg-gray-100 text-gray-700 hover:bg-gray-200 transition inline-flex items-center gap-1" data-print-receipt="${esc(item.id)}" title="Cetak Faktur & Struk">
+            🖨 Cetak Bukti
+          </button>
           <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-200 inline-flex items-center gap-1">
             ✓ Selesai · Stok Terpotong
           </span>
@@ -1706,6 +2252,17 @@ document.body.addEventListener('click', async e => {
   const del = e.target.closest('[data-delete]');
   const restock = e.target.closest('[data-restock]');
   const approvalAction = e.target.closest('[data-approval-action]');
+  const barcodeBtn = e.target.closest('[data-barcode]');
+  const printReceiptBtn = e.target.closest('[data-print-receipt]');
+
+  if (barcodeBtn) {
+    const p = dashboard.products.find(x => x.id === barcodeBtn.dataset.barcode);
+    if (p) openBarcodeLabelModal(p);
+  }
+  if (printReceiptBtn) {
+    const item = (dashboard.approvals || []).find(x => x.id === printReceiptBtn.dataset.printReceipt);
+    if (item) openPrintReceiptModal(item);
+  }
 
   if (edit) {
     const p = dashboard.products.find(x => x.id === edit.dataset.edit);
@@ -1792,6 +2349,11 @@ async function enterApp(user) {
   const initials = user.name.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
   if ($('.avatar')) $('.avatar').textContent = initials;
   if ($('.top-avatar')) $('.top-avatar').textContent = initials;
+  if ($('#settingStoreName')) $('#settingStoreName').value = user.storeName || '';
+  if ($('#settingStorePhone')) $('#settingStorePhone').value = user.storePhone || '';
+  if ($('#settingStoreAddress')) $('#settingStoreAddress').value = user.storeAddress || '';
+  if ($('#settingStoreFooter')) $('#settingStoreFooter').value = user.storeFooter || '';
+  if ($('#topWorkspaceName') && user.storeName) $('#topWorkspaceName').textContent = user.storeName;
   $$('.admin-only').forEach(el => el.hidden = !isAdmin);
   go(location.hash.slice(1) === 'admin' && isAdmin ? 'admin' : 'overview');
   await refresh();

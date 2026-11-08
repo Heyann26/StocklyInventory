@@ -1155,6 +1155,21 @@ button, a, select, input {
   touch-action: manipulation;
 }
 
+/* Tablet Landscape (901px - 1180px) */
+@media (min-width: 901px) and (max-width: 1180px) {
+  .sidebar {
+    width: 215px !important;
+  }
+  .main {
+    margin-left: 215px !important;
+    padding: 0 16px 32px !important;
+  }
+  .topbar {
+    margin: 0 -16px 16px !important;
+    padding: 0 16px !important;
+  }
+}
+
 /* Responsive Overhaul for Mobile & Tablet (iOS & Android) */
 @media (max-width: 900px) {
   .sidebar {
@@ -1382,6 +1397,287 @@ button, a, select, input {
 
   .feedback-layout {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ========================================================
+   PRINTING & DOCUMENT STYLES (Surat Jalan, Thermal, Labels)
+   ======================================================== */
+.print-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+}
+.print-preview-container {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 16px;
+  overflow-y: auto;
+  max-height: 58vh;
+  display: flex;
+  justify-content: center;
+}
+
+/* Surat Jalan A4 Styling */
+.surat-jalan-sheet {
+  background: #ffffff;
+  color: #1e293b;
+  width: 100%;
+  max-width: 720px;
+  padding: 28px 32px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.sj-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid #0f172a;
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+}
+.sj-brand h2 {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 2px 0;
+  letter-spacing: -0.3px;
+}
+.sj-brand p {
+  font-size: 11px;
+  color: #64748b;
+  margin: 1px 0;
+}
+.sj-doc-badge {
+  text-align: right;
+}
+.sj-doc-badge h1 {
+  font-size: 16px;
+  font-weight: 800;
+  color: #e53935;
+  text-transform: uppercase;
+  margin: 0 0 4px 0;
+  letter-spacing: 0.5px;
+}
+.sj-doc-badge .badge-meta {
+  font-size: 11px;
+  color: #475569;
+}
+.sj-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 11.5px;
+}
+.sj-info-grid table td {
+  padding: 2px 4px;
+  vertical-align: top;
+}
+.sj-info-grid table td.lbl {
+  color: #64748b;
+  font-weight: 500;
+  width: 90px;
+}
+.sj-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+  font-size: 12px;
+}
+.sj-table th {
+  background: #f1f5f9;
+  color: #0f172a;
+  font-weight: 700;
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+.sj-table td {
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+}
+.sj-signatures {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-top: 28px;
+  text-align: center;
+}
+.sj-sig-box {
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+  padding: 8px;
+}
+.sj-sig-box span {
+  font-size: 10.5px;
+  color: #64748b;
+  display: block;
+}
+.sj-sig-box .line {
+  margin-top: 50px;
+  border-top: 1px solid #94a3b8;
+  padding-top: 4px;
+  font-weight: 600;
+  font-size: 11px;
+}
+.sj-footer-note {
+  margin-top: 20px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+  font-size: 10px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+/* Struk Thermal 58mm / 80mm Styling */
+.thermal-sheet {
+  background: #ffffff;
+  color: #000000;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  line-height: 1.35;
+  padding: 14px 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  margin: 0 auto;
+}
+.thermal-sheet.width-58 {
+  width: 250px;
+  font-size: 11px;
+}
+.thermal-sheet.width-80 {
+  width: 320px;
+  font-size: 12px;
+}
+.thermal-center {
+  text-align: center;
+}
+.thermal-sheet h3 {
+  font-size: 14px;
+  font-weight: 800;
+  margin: 0 0 2px 0;
+  letter-spacing: -0.2px;
+}
+.thermal-sheet p {
+  margin: 2px 0;
+}
+.thermal-divider {
+  border-bottom: 1px dashed #000000;
+  margin: 8px 0;
+}
+.thermal-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 2px 0;
+}
+.thermal-row.bold {
+  font-weight: 700;
+}
+
+/* Barcode Sticker Styling */
+.label-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+.barcode-label-card {
+  background: #ffffff;
+  border: 1px solid #000000;
+  border-radius: 4px;
+  padding: 8px;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.barcode-label-card .lbl-store {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #475569;
+  margin-bottom: 2px;
+}
+.barcode-label-card .lbl-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+.barcode-label-card .lbl-price {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #000000;
+  margin-top: 3px;
+}
+
+/* @media print isolation */
+@media print {
+  body, html {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+  .sidebar, .topbar, .bottom-nav, .page, #authScreen, .modal-head, .modal-foot, .print-toolbar, .no-print,
+  #modalBackdrop > :not(#modal), .sidebar-backdrop, .toast {
+    display: none !important;
+  }
+  #modalBackdrop {
+    position: static !important;
+    background: none !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+  #modal {
+    box-shadow: none !important;
+    border: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+  .print-preview-container {
+    background: #ffffff !important;
+    border: none !important;
+    padding: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+  .surat-jalan-sheet {
+    box-shadow: none !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+  .thermal-sheet {
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .label-preview-grid {
+    gap: 8px !important;
   }
 }
 

@@ -538,6 +538,10 @@
         <p class="subtitle">Kelola seluruh katalog barang, harga, dan pantau stok minimum.</p>
       </div>
       <div class="heading-actions">
+        <button class="button secondary" id="importBtn" title="Import data produk dari file CSV / Excel">
+          <svg class="w-3.5 h-3.5 text-gray-600" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+          Import CSV
+        </button>
         <button class="button secondary" id="exportBtn">
           <svg class="w-3.5 h-3.5 text-gray-600" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
           Export CSV
@@ -899,6 +903,42 @@
         <p class="subtitle">Informasi aplikasi, profil akun, dan manajemen reset data.</p>
       </div>
     </div><section class="panel settings-card"><div class="settings-brand"><span class="brand-mark"><svg viewBox="0 0 40 40" fill="none"><path d="M9 13.5 20 8l11 5.5v13L20 32l-11-5.5v-13Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="m10 14 10 5 10-5M20 19v12M15 11l11 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><h2>Stockly Inventory</h2><p>Sistem pencatatan stock opname dan manajemen inventaris.</p></div></div><div class="settings-info"><div><span>Versi aplikasi</span><strong>1.1.0</strong></div><div><span>Akun masuk</span><strong id="currentUserName">—</strong></div><div><span>Produk tersimpan</span><strong id="settingsCount">—</strong></div><div><span>API Status</span><strong class="api-status">● Terhubung</strong></div></div><div class="notification-settings"><div><strong>Notifikasi ke perangkat ini</strong><p id="pushStatus">Aktifkan notifikasi untuk mendapat pembaruan stok dan masukan admin.</p></div><button class="button primary" id="enableNotifications">Aktifkan Notifikasi</button><button class="button secondary" id="testNotification" hidden>Kirim Notifikasi Uji</button></div><p class="settings-note">Untuk menerima notifikasi saat aplikasi tertutup, buka situs melalui HTTPS, izinkan notifikasi, dan pasang Stockly ke layar utama HP jika menggunakan iPhone.</p><div class="settings-actions"><button class="button secondary" id="logoutButton">Keluar dari akun</button></div></section>
+  <!-- Feature 4: Profil Toko & Usaha (Branding untuk Surat Jalan & Struk) -->
+  <section class="panel bg-white border border-gray-200 rounded-lg p-5 mt-4">
+    <div class="panel-header mb-3">
+      <div>
+        <h2 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+          <svg class="w-4 h-4 text-brand-600" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Profil Toko & Usaha (Kop Dokumen Resmi)
+        </h2>
+        <p class="text-xs text-gray-500">Informasi ini otomatis tampil sebagai kop resmi pada Surat Jalan, Resi Pengiriman, dan Struk Thermal.</p>
+      </div>
+    </div>
+    <form id="storeProfileForm" class="form-grid">
+      <div class="form-field">
+        <label>Nama Toko / Perusahaan *</label>
+        <input name="storeName" id="settingStoreName" placeholder="Contoh: CV Berkah Abadi Jaya" required>
+      </div>
+      <div class="form-field">
+        <label>No. Telepon / WhatsApp</label>
+        <input name="storePhone" id="settingStorePhone" placeholder="Contoh: 0812-3456-7890">
+      </div>
+      <div class="form-field full">
+        <label>Alamat Lengkap Toko / Gudang</label>
+        <input name="storeAddress" id="settingStoreAddress" placeholder="Contoh: Jl. Industri Raya No. 12, Gudang Blok B, Jakarta">
+      </div>
+      <div class="form-field full">
+        <label>Catatan Kaki Dokumen (Surat Jalan / Struk)</label>
+        <input name="storeFooter" id="settingStoreFooter" placeholder="Contoh: Barang telah diperiksa dalam kondisi baik. Terima kasih atas kerja samanya.">
+      </div>
+      <div class="form-field full flex justify-end">
+        <button type="submit" class="button primary" id="btnSaveStoreProfile">
+          Simpan Profil Usaha
+        </button>
+      </div>
+    </form>
+  </section>
+
   <section class="panel border-rose-200 bg-rose-50/20 mt-5">
     <div class="panel-header">
       <div>
