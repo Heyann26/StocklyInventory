@@ -1,8 +1,70 @@
 <!doctype html>
 <html lang="id">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#f6f8fc"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="apple-touch-icon" href="/icon.svg">
-  <meta name="description" content="Stockly, sistem pencatatan stock opname dan inventaris yang mudah digunakan.">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f8fc">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <meta name="description" content="StocklyInventory adalah platform sistem manajemen inventaris, barcode scanner, dan stock opname modern yang dikembangkan oleh Muhammad Febriansyah.">
+  <meta name="author" content="Muhammad Febriansyah">
+  <meta name="creator" content="Muhammad Febriansyah">
+  <meta name="publisher" content="Muhammad Febriansyah">
+  <meta name="copyright" content="Muhammad Febriansyah">
+  <meta name="robots" content="index, follow">
+  
+  <!-- Open Graph / Facebook / WhatsApp -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://stocklyinventory.web.id/">
+  <meta property="og:title" content="StocklyInventory — Sistem Manajemen Inventaris">
+  <meta property="og:description" content="Sistem manajemen inventaris, pencetakan resi / surat jalan, barcode scanner, dan stock opname akurat oleh Muhammad Febriansyah.">
+  <meta property="og:site_name" content="StocklyInventory">
+  
+  <!-- Structured Data Schema.org (Google Knowledge Graph & Rich Snippets) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        "@id": "https://stocklyinventory.web.id/#app",
+        "name": "StocklyInventory",
+        "url": "https://stocklyinventory.web.id/",
+        "applicationCategory": "BusinessApplication",
+        "operatingSystem": "All",
+        "description": "Platform sistem manajemen inventaris, surat jalan, dan stock opname akurat yang dibuat dan dikembangkan oleh Muhammad Febriansyah.",
+        "author": {
+          "@type": "Person",
+          "@id": "https://stocklyinventory.web.id/#author",
+          "name": "Muhammad Febriansyah",
+          "jobTitle": "Developer & Founder",
+          "url": "https://stocklyinventory.web.id/"
+        },
+        "creator": {
+          "@type": "Person",
+          "name": "Muhammad Febriansyah"
+        },
+        "publisher": {
+          "@type": "Person",
+          "name": "Muhammad Febriansyah"
+        }
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://stocklyinventory.web.id/#website",
+        "url": "https://stocklyinventory.web.id/",
+        "name": "StocklyInventory",
+        "description": "Sistem stok gudang dan opname resmi oleh Muhammad Febriansyah.",
+        "publisher": {
+          "@type": "Person",
+          "name": "Muhammad Febriansyah"
+        }
+      }
+    ]
+  }
+  </script>
+
   <title>StocklyInventory</title><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon.svg" type="image/svg+xml"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -97,7 +159,7 @@
       <button class="button primary auth-submit">Buat Akun Admin</button>
       <button class="auth-back" type="button" id="backToLogin">Kembali ke masuk</button>
     </form>
-    <p class="auth-footnote">Sistem manajemen stok &amp; inventaris resmi.</p>
+    <p class="auth-footnote">StocklyInventory · Dibuat &amp; Dikembangkan oleh Muhammad Febriansyah</p>
   </div>
 </section>
 
@@ -990,7 +1052,7 @@
         <h1>Settings Workspace</h1>
         <p class="subtitle">Informasi aplikasi, profil akun, dan manajemen reset data.</p>
       </div>
-    </div><section class="panel settings-card"><div class="settings-brand"><span class="brand-mark"><svg viewBox="0 0 40 40" fill="none"><path d="M9 13.5 20 8l11 5.5v13L20 32l-11-5.5v-13Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="m10 14 10 5 10-5M20 19v12M15 11l11 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><h2>Stockly Inventory</h2><p>Sistem pencatatan stock opname dan manajemen inventaris.</p></div></div><div class="settings-info"><div><span>Versi aplikasi</span><strong>1.1.0</strong></div><div><span>Akun masuk</span><strong id="currentUserName">—</strong></div><div><span>Produk tersimpan</span><strong id="settingsCount">—</strong></div><div><span>API Status</span><strong class="api-status">● Terhubung</strong></div></div><div class="notification-settings"><div><strong>Notifikasi ke perangkat ini</strong><p id="pushStatus">Aktifkan notifikasi untuk mendapat pembaruan stok dan masukan admin.</p></div><button class="button primary" id="enableNotifications">Aktifkan Notifikasi</button><button class="button secondary" id="testNotification" hidden>Kirim Notifikasi Uji</button></div><p class="settings-note">Untuk menerima notifikasi saat aplikasi tertutup, buka situs melalui HTTPS, izinkan notifikasi, dan pasang Stockly ke layar utama HP jika menggunakan iPhone.</p><div class="settings-actions"><button class="button secondary" id="logoutButton">Keluar dari akun</button></div></section>
+    </div><section class="panel settings-card"><div class="settings-brand"><span class="brand-mark"><svg viewBox="0 0 40 40" fill="none"><path d="M9 13.5 20 8l11 5.5v13L20 32l-11-5.5v-13Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="m10 14 10 5 10-5M20 19v12M15 11l11 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><h2>Stockly Inventory</h2><p>Sistem pencatatan stock opname dan manajemen inventaris.</p></div></div><div class="settings-info"><div><span>Versi aplikasi</span><strong>1.1.0</strong></div><div><span>Pengembang</span><strong>Muhammad Febriansyah</strong></div><div><span>Akun masuk</span><strong id="currentUserName">—</strong></div><div><span>Produk tersimpan</span><strong id="settingsCount">—</strong></div><div><span>API Status</span><strong class="api-status">● Terhubung</strong></div></div><div class="notification-settings"><div><strong>Notifikasi ke perangkat ini</strong><p id="pushStatus">Aktifkan notifikasi untuk mendapat pembaruan stok dan masukan admin.</p></div><button class="button primary" id="enableNotifications">Aktifkan Notifikasi</button><button class="button secondary" id="testNotification" hidden>Kirim Notifikasi Uji</button></div><p class="settings-note">Untuk menerima notifikasi saat aplikasi tertutup, buka situs melalui HTTPS, izinkan notifikasi, dan pasang Stockly ke layar utama HP jika menggunakan iPhone.</p><div class="settings-actions"><button class="button secondary" id="logoutButton">Keluar dari akun</button></div></section>
 
   <section class="panel border-rose-200 bg-rose-50/20 mt-5">
     <div class="panel-header">
@@ -1013,7 +1075,7 @@
     </div>
   </section>
   </section>
-  <footer>© 2026 Stockly Inventory <span>Dirancang untuk pengelolaan stok yang lebih baik.</span></footer>
+  <footer>© 2026 StocklyInventory · Dibuat &amp; Dikembangkan oleh <strong>Muhammad Febriansyah</strong></footer>
 </main>
 
 <!-- Mobile Bottom Navigation Bar (iOS & Android) -->
