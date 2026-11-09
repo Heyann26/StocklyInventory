@@ -276,6 +276,59 @@ svg {
   font-weight: 600;
   font-size: 11px;
 }
+
+/* Fast Account Switcher Pill (Instagram Style) */
+.account-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 5px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  outline: none;
+}
+.account-pill-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+.account-pill-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--brand-red, #e53935);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.account-pill-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  line-height: 1.15;
+}
+.account-pill-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0f172a;
+  max-width: 130px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.account-pill-role {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: capitalize;
+}
 .mobile-menu { display: none; }
 
 /* Buttons & UI controls */

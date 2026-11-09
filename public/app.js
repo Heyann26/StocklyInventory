@@ -2478,6 +2478,218 @@ function showAuth() {
   if ($('#authScreen')) $('#authScreen').hidden = false;
 }
 
+// Multi-Account & Fast Switcher System (like Instagram / Google)
+function getSavedAccounts() {
+  try {
+    const raw = localStorage.getItem('stokly_accounts');
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveAccountToStorage(user) {
+  if (!user || !user.id) return;
+  const token = user.token || localStorage.getItem('stokly_token');
+  if (!token) return;
+  let accounts = getSavedAccounts().filter(a => a.id !== user.id && a.email !== user.email);
+  accounts.unshift({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role || 'user',
+    token: token,
+    storeName: user.storeName || '',
+    storeLogo: user.storeLogo || '',
+    lastActive: Date.now()
+  });
+  localStorage.setItem('stokly_accounts', JSON.stringify(accounts.slice(0, 8)));
+}
+
+function removeSavedAccount(accountId) {
+  let accounts = getSavedAccounts().filter(a => a.id !== accountId);
+  localStorage.setItem('stokly_accounts', JSON.stringify(accounts));
+}
+
+async function switchToAccount(targetAccount) {
+  if (!targetAccount || !targetAccount.token) return;
+  localStorage.setItem('stokly_token', targetAccount.token);
+  localStorage.setItem('stokly_user', JSON.stringify(targetAccount));
+  currentUser = targetAccount;
+  saveAccountToStorage(targetAccount);
+  closeModal();
+  toast(`Beralih ke akun ${targetAccount.name}...`);
+  await enterApp(targetAccount, true);
+}
+
+function openAccountSwitcherModal() {
+  const current = currentUser || {};
+  const accounts = getSavedAccounts();
+  const otherAccounts = accounts.filter(a => a.id !== current.id && a.email !== current.email);
+  const currentInitials = (current.name || 'A').split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+  const isAdmin = current.role?.toLowerCase() === 'admin';
+
+  const bodyHtml = `
+    <div class="space-y-4">
+      <!-- Currently Active Account -->
+      <div>
+        <label class="block text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">Akun Sedang Digunakan</label>
+        <div class="p-3 bg-red-50/60 border border-red-200 rounded-xl flex items-center justify-between gap-3 shadow-xs">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-10 h-10 rounded-full bg-red-600 text-white font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
+              ${currentInitials}
+            </div>
+            <div class="min-w-0 flex-1">
+              <strong class="block text-sm text-gray-900 truncate">${current.name || 'Pengguna'}</strong>
+              <span class="block text-xs text-gray-500 truncate">${current.email || '—'} · <span class="capitalize text-red-600 font-semibold">${isAdmin ? 'Administrator' : (current.role || 'User')}</span></span>
+              ${current.storeName ? `<span class="block text-[11px] text-gray-600 font-medium truncate mt-0.5">🏪 ${current.storeName}</span>` : ''}
+            </div>
+          </div>
+          <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-green-100 text-green-700 shrink-0 flex items-center gap-1.5 border border-green-200">
+            <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Aktif
+          </span>
+        </div>
+      </div>
+
+      <!-- Other Saved Accounts -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Beralih Cepat ke Akun Lain (${otherAccounts.length})</label>
+        </div>
+        ${otherAccounts.length === 0 ? `
+          <div class="p-3.5 bg-gray-50 border border-dashed border-gray-200 rounded-xl text-center text-xs text-gray-500">
+            Belum ada akun lain yang tersimpan di perangkat ini. Klik tombol di bawah untuk menambah akun staf, manajer, atau toko lain.
+          </div>
+        ` : `
+          <div class="space-y-2 max-h-52 overflow-y-auto pr-1">
+            ${otherAccounts.map(acc => {
+              const inits = (acc.name || 'A').split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+              return `
+                <div class="p-2.5 bg-white border border-gray-200 hover:border-gray-300 rounded-xl flex items-center justify-between gap-2 transition hover:bg-gray-50/50">
+                  <div class="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer" onclick="window.__switchAccountAction('${acc.id}')">
+                    <div class="w-8 h-8 rounded-full bg-gray-700 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                      ${inits}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <strong class="block text-xs text-gray-900 truncate">${acc.name}</strong>
+                      <span class="block text-[11px] text-gray-500 truncate">${acc.email} · <span class="capitalize font-medium text-gray-600">${acc.role || 'User'}</span></span>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <button type="button" class="px-2.5 py-1 text-xs font-semibold rounded-md bg-gray-100 hover:bg-gray-200 text-gray-800 transition" onclick="window.__switchAccountAction('${acc.id}')">
+                      Beralih
+                    </button>
+                    <button type="button" class="w-6 h-6 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition" title="Hapus dari daftar cepat perangkat ini" onclick="window.__removeAccountAction('${acc.id}')">
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `}
+      </div>
+
+      <!-- Quick Add Account Button -->
+      <div class="pt-2 border-t border-gray-100">
+        <button type="button" id="btnModalAddNewAccount" class="w-full py-2.5 px-3 border border-dashed border-red-300 hover:border-red-500 hover:bg-red-50/50 rounded-xl text-xs font-semibold text-red-600 flex items-center justify-center gap-2 transition">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+          + Tambah Akun Lain ke Perangkat Ini (Switch Akun)
+        </button>
+      </div>
+
+      <!-- Footer Actions -->
+      <div class="flex items-center justify-between pt-1">
+        <button type="button" class="text-xs text-gray-500 hover:text-gray-800 font-medium" onclick="closeModal()">
+          Tutup
+        </button>
+        <button type="button" class="text-xs text-red-600 hover:text-red-700 font-semibold" onclick="closeModal(); logoutStockly();">
+          Keluar dari Akun Ini
+        </button>
+      </div>
+    </div>
+  `;
+
+  modalFrame('Beralih / Tambah Akun', 'Kelola multi-akun dan beralih cepat seperti Instagram.', bodyHtml);
+  const foot = $('.modal-foot');
+  if (foot) foot.style.display = 'none';
+
+  $('#btnModalAddNewAccount')?.addEventListener('click', () => {
+    openAddNewAccountFormModal();
+  });
+}
+
+function openAddNewAccountFormModal() {
+  const formHtml = `
+    <form id="addAccountSubForm" class="space-y-3">
+      <div class="p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-xl text-xs">
+        Masuk dengan akun lain untuk disimpan di perangkat ini. Setelah masuk, Anda bisa beralih akun kapan saja secara instan.
+      </div>
+      <div class="form-field">
+        <label>Email atau Nama Pengguna *</label>
+        <input name="email" id="addAccountIdentifier" required autocomplete="username" placeholder="nama@email.com atau nama akun">
+      </div>
+      <div class="form-field">
+        <label>Kata Sandi *</label>
+        <input name="password" id="addAccountPassword" type="password" required autocomplete="current-password" placeholder="Minimal 8 karakter">
+      </div>
+      <div class="pt-2 flex items-center justify-between gap-2">
+        <button type="button" class="button secondary text-xs" onclick="openAccountSwitcherModal()">
+          ← Kembali
+        </button>
+        <button type="submit" class="button primary text-xs font-semibold" id="btnSubmitAddAccount">
+          Masuk &amp; Simpan Akun
+        </button>
+      </div>
+    </form>
+  `;
+
+  modalFrame('Tambah Akun Baru', 'Masukkan data akun yang ingin Anda simpan di perangkat ini.', formHtml);
+  const foot = $('.modal-foot');
+  if (foot) foot.style.display = 'none';
+
+  $('#addAccountSubForm')?.addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = $('#btnSubmitAddAccount');
+    if (btn) btn.disabled = true;
+    const identifier = $('#addAccountIdentifier')?.value.trim();
+    const password = $('#addAccountPassword')?.value;
+    try {
+      const res = await api('/api/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email: identifier, password })
+      });
+      if (res.user) {
+        if (res.token) res.user.token = res.token;
+        saveAccountToStorage(res.user);
+        currentUser = res.user;
+        localStorage.setItem('stokly_token', res.token);
+        localStorage.setItem('stokly_user', JSON.stringify(res.user));
+        closeModal();
+        await enterApp(res.user, true);
+        toast(`Akun ${res.user.name} berhasil ditambahkan dan aktif!`);
+      }
+    } catch (err) {
+      toast(err.message || 'Gagal masuk akun');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  });
+}
+
+window.__switchAccountAction = async function(accountId) {
+  const accounts = getSavedAccounts();
+  const target = accounts.find(a => a.id === accountId);
+  if (!target) return;
+  await switchToAccount(target);
+};
+
+window.__removeAccountAction = function(accountId) {
+  removeSavedAccount(accountId);
+  toast('Akun dihapus dari perangkat ini.');
+  openAccountSwitcherModal();
+};
+
 async function enterApp(user, shouldRefresh = true) {
   if (!user) return;
   currentUser = user;
@@ -2492,9 +2704,15 @@ async function enterApp(user, shouldRefresh = true) {
   if ($('#welcomeGreeting')?.firstChild) $('#welcomeGreeting').firstChild.textContent = `Selamat datang, ${user.name}! `;
   if ($('.profile strong')) $('.profile strong').textContent = user.name;
   if ($('.profile small')) $('.profile small').textContent = isAdmin ? 'Administrator' : (user.role || 'Pengguna');
-  const initials = user.name.split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
+  const initials = (user.name || 'A').split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
   if ($('.avatar')) $('.avatar').textContent = initials;
   if ($('.top-avatar')) $('.top-avatar').textContent = initials;
+  if ($('#topPillAvatar')) $('#topPillAvatar').textContent = initials;
+  if ($('#topPillName')) $('#topPillName').textContent = user.name || 'Akun';
+  if ($('#topPillRole')) $('#topPillRole').textContent = isAdmin ? 'Admin' : (user.role || 'Staf');
+  if ($('#sidebarUserName')) $('#sidebarUserName').textContent = user.name || 'Pengguna';
+  if ($('#sidebarUserRole')) $('#sidebarUserRole').textContent = isAdmin ? 'Administrator' : (user.role || 'Pengguna');
+  if ($('#sidebarAvatar')) $('#sidebarAvatar').textContent = initials;
   if ($('#settingStoreName')) $('#settingStoreName').value = user.storeName || '';
   if ($('#settingStorePhone')) $('#settingStorePhone').value = user.storePhone || '';
   if ($('#settingStoreAddress')) $('#settingStoreAddress').value = user.storeAddress || '';
@@ -2504,9 +2722,9 @@ async function enterApp(user, shouldRefresh = true) {
   if ($('#profilePageEmail')) $('#profilePageEmail').textContent = user.email || '—';
   if ($('#profilePageRole')) $('#profilePageRole').textContent = isAdmin ? 'Administrator' : (user.role || 'Pengguna');
   if ($('#profilePageAvatar')) $('#profilePageAvatar').textContent = initials;
-  if ($('#topWorkspaceName') && user.storeName) $('#topWorkspaceName').textContent = user.storeName;
   updateStorePreview(user);
   if (user.storeLogo) updateStoreLogoUI(user.storeLogo);
+  saveAccountToStorage(user);
   $$('.admin-only').forEach(el => el.hidden = !isAdmin);
 
   // Preserve current active route on reload/enter (clean URLs without #)
@@ -2982,13 +3200,11 @@ window.addEventListener('unhandledrejection', e => {
   }
 });
 
-// Zoho Topbar event handlers
-$('#topQuickAdd')?.addEventListener('click', () => {
-  $('#quickActionAddProduct')?.click();
-});
-
-$('#topSettingsBtn')?.addEventListener('click', () => {
-  go('settings');
+// Account Switcher triggers
+$('#btnOpenAccountSwitcher')?.addEventListener('click', openAccountSwitcherModal);
+$('#sidebarProfileWrap')?.addEventListener('click', e => {
+  if (e.target.closest('#sidebarLogout')) return;
+  openAccountSwitcherModal();
 });
 
 $('#globalSearchInput')?.addEventListener('input', e => {

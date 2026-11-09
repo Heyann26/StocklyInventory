@@ -157,7 +157,7 @@
   </nav>
 
   <div class="sidebar-bottom">
-    <div class="profile">
+    <div class="profile" id="sidebarProfileWrap" style="cursor: pointer;" title="Ganti atau Tambah Akun (Switch Akun)">
       <div class="avatar" id="sidebarAvatar">ST</div>
       <div class="profile-copy">
         <strong id="sidebarUserName">Pengguna</strong>
@@ -172,49 +172,39 @@
 <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
 <main class="main">
-  <!-- Zoho Inventory Topbar Header -->
+  <!-- Topbar Header -->
   <header class="topbar">
     <div class="flex items-center gap-2 min-w-0">
       <button class="mobile-menu" id="mobileMenu" aria-label="Buka menu">
         <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
       <span class="mobile-brand-title font-bold text-gray-900 tracking-tight sm:hidden text-base shrink-0">Stockly<span class="text-red-600">.</span></span>
-      <!-- Quick Red Add Button -->
-      <button type="button" class="w-7 h-7 rounded-full bg-red-600 hover:bg-red-700 text-white flex items-center justify-center font-bold text-sm transition shrink-0" id="topQuickAdd" title="Tambah Produk">
-        <svg class="w-4 h-4" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-      </button>
-      <!-- History Button (desktop only) -->
-      <button type="button" class="hidden sm:flex w-7 h-7 rounded text-gray-500 hover:text-gray-800 hover:bg-gray-100 items-center justify-center transition shrink-0" title="Riwayat" data-page="reports">
-        <svg class="w-4 h-4" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 14 14"/></svg>
-      </button>
       <!-- Search Input -->
       <div class="search-box">
         <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg>
-        <input id="globalSearchInput" placeholder="Cari...">
+        <input id="globalSearchInput" placeholder="Cari produk atau SKU...">
       </div>
     </div>
 
     <!-- Right Header Controls -->
     <div class="top-actions">
-      <!-- Workspace Selector (desktop only) -->
-      <div class="hidden md:flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded cursor-pointer hover:bg-gray-100" id="topWorkspaceSwitcher">
-        <span id="topWorkspaceName">Stockly Workspace</span>
-        <svg class="w-3.5 h-3.5 text-gray-400" viewBox="0 0 20 20"><path d="m6 8 4 4 4-4"/></svg>
-      </div>
-
       <!-- Notification Bell -->
       <button class="icon-button notification" id="notificationButton" aria-label="Lihat produk stok menipis" title="Peringatan Stok & Notifikasi">
         <svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
         <i></i>
       </button>
 
-      <!-- Settings Shortcut -->
-      <button class="icon-button" id="topSettingsBtn" data-page="settings" title="Settings Workspace" aria-label="Settings">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.4.8l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.4-.8l-1.7.6-1.4-2.4 1.4-1.1a8 8 0 0 1 0-1.6L6.5 12.4l1.4-2.4 1.7.6A8 8 0 0 1 11 9.8l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.4.8l1.7-.6 1.4 2.4-1.4 1.1a8 8 0 0 1-.1 1.5Z"/></svg>
+      <!-- Fast Account Switcher Pill (Instagram Style) -->
+      <button type="button" class="account-pill-btn" id="btnOpenAccountSwitcher" title="Ganti atau Tambah Akun (Switch Akun)">
+        <div class="account-pill-avatar" id="topPillAvatar">F</div>
+        <div class="account-pill-text hidden sm:flex">
+          <span class="account-pill-name" id="topPillName">Akun</span>
+          <span class="account-pill-role" id="topPillRole">Administrator</span>
+        </div>
+        <svg class="w-3.5 h-3.5 text-gray-400 shrink-0 ml-0.5" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clip-rule="evenodd"/>
+        </svg>
       </button>
-
-      <!-- User Avatar -->
-      <div class="top-avatar" id="topUserAvatar" title="Akun Pengguna">AR</div>
     </div>
   </header>
 
@@ -244,27 +234,15 @@
         </div>
       </div>
 
-      <!-- Quick Action Grid -->
-      <div class="overview-actions-grid flex flex-wrap items-center gap-2 w-full xl:w-auto">
-        <button type="button" id="quickActionScan" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md transition shadow-xs">
-          <svg class="w-3.5 h-3.5 text-gray-500 shrink-0" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
-          Scan Barcode
-        </button>
-        <button type="button" id="quickActionOpname" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md transition shadow-xs" data-action="new-session">
-          <svg class="w-3.5 h-3.5 text-gray-500 shrink-0" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
-          Stock Opname
-        </button>
-        <button type="button" id="quickActionAddProduct" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-md transition shadow-xs">
-          <svg class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <!-- Quick Action Bar -->
+      <div class="overview-actions-grid flex flex-wrap items-center gap-2.5 w-full xl:w-auto">
+        <button type="button" id="quickActionAddProduct" class="inline-flex items-center justify-center gap-2 px-3.5 py-2 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded-md transition shadow-xs">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Tambah Produk
         </button>
-        <button type="button" id="quickActionReport" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md transition shadow-xs" data-page="reports">
-          <svg class="w-3.5 h-3.5 text-gray-500 shrink-0" viewBox="0 0 24 24"><path d="M4 19V5M4 19h17M8 15l4-4 3 2 5-7"/></svg>
-          Laporan
-        </button>
-        <button type="button" id="quickActionReset" class="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-md transition shadow-xs" title="Reset data modular">
-          <svg class="w-3.5 h-3.5 text-red-600 shrink-0" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-          Reset Data
+        <button type="button" id="quickActionScan" class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-md transition shadow-xs">
+          <svg class="w-4 h-4 text-gray-500 shrink-0" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>
+          Scan Barcode
         </button>
       </div>
     </div>
