@@ -1,7 +1,7 @@
 {
   "functions": {
     "server.js": {
-      "includeFiles": "public/**"
+      "includeFiles": "{public/**,data/**}"
     }
   },
   "rewrites": [

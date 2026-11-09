@@ -19,6 +19,18 @@ let dashboard = { products: [], sessions: [], activities: [], movements: [], app
 let toastTimer;
 let currentUser = null, authMode = 'login', serviceWorkerRegistration = null;
 
+// Pre-hydrate user session if present in localStorage to eliminate flicker
+try {
+  const cachedUserStr = localStorage.getItem('stokly_user');
+  const cachedToken = localStorage.getItem('stokly_token');
+  if (cachedToken && cachedUserStr) {
+    currentUser = JSON.parse(cachedUserStr);
+    currentUser.token = cachedToken;
+    document.body.classList.remove('auth-required');
+    if ($('#authScreen')) $('#authScreen').hidden = true;
+  }
+} catch (e) {}
+
 // Filter States
 let activeDateRange = 'today';
 let customDateStart = '';
@@ -42,6 +54,7 @@ async function api(url, options = {}) {
     if (response.status === 401 && !url.includes('/api/auth/status') && !url.includes('/api/auth/login')) {
       if (currentUser) {
         localStorage.removeItem('stokly_token');
+        localStorage.removeItem('stokly_user');
         currentUser = null;
         document.body.classList.add('auth-required');
         if ($('#authScreen')) $('#authScreen').hidden = false;
@@ -754,7 +767,7 @@ async function refresh() {
   render();
 }
 
-const pages = { overview: 'Ringkasan', products: 'Data Produk', sessions: 'Stock Opname', reports: 'Laporan', profile: 'Profil Toko & Usaha', feedback: 'Kritik & Saran', admin: 'Admin & Monitoring', settings: 'Pengaturan' };
+const pages = { overview: 'Ringkasan', products: 'Data Produk', sessions: 'Stock Opname', reports: 'Laporan', profile: 'Profil Toko & Usaha', feedback: 'Kritik & Saran', admin: 'Admin & Monitoring', settings: 'Settings' };
 
 function toggleSidebar(forceState) {
   const sidebar = $('#sidebar');
@@ -1931,6 +1944,11 @@ $('#storeProfileForm')?.addEventListener('submit', async e => {
     });
     if (res.user) {
       currentUser = { ...currentUser, ...res.user };
+      if (res.token) {
+        currentUser.token = res.token;
+        localStorage.setItem('stokly_token', res.token);
+      }
+      localStorage.setItem('stokly_user', JSON.stringify(currentUser));
       if ($('#topWorkspaceName') && currentUser.storeName) $('#topWorkspaceName').textContent = currentUser.storeName;
       updateStorePreview(currentUser);
       updateStoreLogoUI(currentUser.storeLogo);
@@ -2442,11 +2460,13 @@ function showAuth() {
   if ($('#authScreen')) $('#authScreen').hidden = false;
 }
 
-async function enterApp(user) {
+async function enterApp(user, shouldRefresh = true) {
+  if (!user) return;
   currentUser = user;
   if (user?.token) {
     localStorage.setItem('stokly_token', user.token);
   }
+  localStorage.setItem('stokly_user', JSON.stringify(user));
   const isAdmin = user.role?.toLowerCase() === 'admin';
   document.body.classList.remove('auth-required');
   if ($('#authScreen')) $('#authScreen').hidden = true;
@@ -2468,10 +2488,18 @@ async function enterApp(user) {
   if ($('#profilePageAvatar')) $('#profilePageAvatar').textContent = initials;
   if ($('#topWorkspaceName') && user.storeName) $('#topWorkspaceName').textContent = user.storeName;
   updateStorePreview(user);
+  if (user.storeLogo) updateStoreLogoUI(user.storeLogo);
   $$('.admin-only').forEach(el => el.hidden = !isAdmin);
-  go(location.hash.slice(1) === 'admin' && isAdmin ? 'admin' : 'overview');
-  await refresh();
-  await refreshPushState();
+
+  // Preserve current active route on reload/enter
+  const currentHash = location.hash.slice(1);
+  const targetPage = pages[currentHash] ? currentHash : 'overview';
+  go(targetPage === 'admin' && !isAdmin ? 'overview' : targetPage);
+
+  if (shouldRefresh) {
+    await refresh();
+    await refreshPushState();
+  }
 }
 
 function switchToSetup(show) {
@@ -2484,6 +2512,19 @@ function switchToSetup(show) {
 }
 
 async function initializeApp() {
+  const cachedToken = localStorage.getItem('stokly_token');
+  const cachedUserStr = localStorage.getItem('stokly_user');
+  let hasValidLocalSession = false;
+
+  if (cachedToken && cachedUserStr) {
+    try {
+      const cachedUser = JSON.parse(cachedUserStr);
+      cachedUser.token = cachedToken;
+      hasValidLocalSession = true;
+      await enterApp(cachedUser, false);
+    } catch (e) {}
+  }
+
   try {
     if ('serviceWorker' in navigator) {
       serviceWorkerRegistration = await navigator.serviceWorker.register('/service-worker.js').catch(error => {
@@ -2500,11 +2541,20 @@ async function initializeApp() {
     } else {
       if ($('#adminSetupCallout')) $('#adminSetupCallout').hidden = true;
     }
-    if (state.user) await enterApp(state.user);
-    else showAuth();
+    if (state.user) {
+      state.user.token = cachedToken || state.user.token;
+      await enterApp(state.user, true);
+    } else if (!hasValidLocalSession) {
+      showAuth();
+    }
   } catch (error) {
-    showAuth();
-    showAuthMessage(`Tidak dapat terhubung ke server: ${error.message}`);
+    if (!hasValidLocalSession) {
+      showAuth();
+      showAuthMessage(`Tidak dapat terhubung ke server: ${error.message}`);
+    } else {
+      console.warn('Background sync warning:', error.message);
+      await refresh().catch(() => {});
+    }
   }
 }
 
@@ -2637,17 +2687,21 @@ async function logout(event) {
   try {
     await api('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
     localStorage.removeItem('stokly_token');
+    localStorage.removeItem('stokly_user');
     currentUser = null;
+    document.documentElement.classList.remove('has-session');
     document.body.classList.add('auth-required');
-    $('#authScreen').hidden = false;
+    if ($('#authScreen')) $('#authScreen').hidden = false;
     location.hash = '';
     setAuthMode('login');
     toast('Anda sudah keluar.');
   } catch (error) {
     localStorage.removeItem('stokly_token');
+    localStorage.removeItem('stokly_user');
     currentUser = null;
+    document.documentElement.classList.remove('has-session');
     document.body.classList.add('auth-required');
-    $('#authScreen').hidden = false;
+    if ($('#authScreen')) $('#authScreen').hidden = false;
     toast(`Keluar: ${error.message}`);
   } finally {
     buttons.forEach(button => {

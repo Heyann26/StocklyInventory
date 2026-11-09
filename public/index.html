@@ -16,8 +16,24 @@
       }
     }
   </script>
-  <link rel="stylesheet" href="/styles.css"></head>
+  <link rel="stylesheet" href="/styles.css">
+  <script>
+    // Early session hydration check to prevent flash of auth screen on refresh
+    (function() {
+      try {
+        if (localStorage.getItem('stokly_token') && localStorage.getItem('stokly_user')) {
+          document.documentElement.classList.add('has-session');
+        }
+      } catch (e) {}
+    })();
+  </script>
+</head>
 <body class="auth-required">
+<script>
+  if (document.documentElement.classList.contains('has-session')) {
+    document.body.classList.remove('auth-required');
+  }
+</script>
 <section id="authScreen" aria-label="Masuk ke Stockly">
   <div class="auth-card">
     <a class="brand auth-brand" href="#">
@@ -164,7 +180,7 @@
     </a>
     <a class="nav-link" href="#settings" data-page="settings">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.4.8l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.4-.8l-1.7.6-1.4-2.4 1.4-1.1a8 8 0 0 1 0-1.6L6.5 12.4l1.4-2.4 1.7.6A8 8 0 0 1 11 9.8l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.4.8l1.7-.6 1.4 2.4-1.4 1.1a8 8 0 0 1-.1 1.5Z"/></svg>
-      <span>Pengaturan</span>
+      <span>Settings</span>
     </a>
   </nav>
 
@@ -221,7 +237,7 @@
       </button>
 
       <!-- Settings Shortcut -->
-      <button class="icon-button" id="topSettingsBtn" data-page="settings" title="Pengaturan Sistem" aria-label="Pengaturan">
+      <button class="icon-button" id="topSettingsBtn" data-page="settings" title="Settings Workspace" aria-label="Settings">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.4.8l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.4-.8l-1.7.6-1.4-2.4 1.4-1.1a8 8 0 0 1 0-1.6L6.5 12.4l1.4-2.4 1.7.6A8 8 0 0 1 11 9.8l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.4.8l1.7-.6 1.4 2.4-1.4 1.1a8 8 0 0 1-.1 1.5Z"/></svg>
       </button>
 
@@ -1016,12 +1032,12 @@
     </div>
   </section>
 
-  <!-- PENGATURAN PAGE -->
+  <!-- SETTINGS PAGE -->
   <section class="page" id="page-settings">
     <div class="page-heading">
       <div>
-        <div class="eyebrow">PENGATURAN</div>
-        <h1>Pengaturan Workspace</h1>
+        <div class="eyebrow">SETTINGS</div>
+        <h1>Settings Workspace</h1>
         <p class="subtitle">Informasi aplikasi, profil akun, dan manajemen reset data.</p>
       </div>
     </div><section class="panel settings-card"><div class="settings-brand"><span class="brand-mark"><svg viewBox="0 0 40 40" fill="none"><path d="M9 13.5 20 8l11 5.5v13L20 32l-11-5.5v-13Z" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/><path d="m10 14 10 5 10-5M20 19v12M15 11l11 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><h2>Stockly Inventory</h2><p>Sistem pencatatan stock opname dan manajemen inventaris.</p></div></div><div class="settings-info"><div><span>Versi aplikasi</span><strong>1.1.0</strong></div><div><span>Akun masuk</span><strong id="currentUserName">—</strong></div><div><span>Produk tersimpan</span><strong id="settingsCount">—</strong></div><div><span>API Status</span><strong class="api-status">● Terhubung</strong></div></div><div class="notification-settings"><div><strong>Notifikasi ke perangkat ini</strong><p id="pushStatus">Aktifkan notifikasi untuk mendapat pembaruan stok dan masukan admin.</p></div><button class="button primary" id="enableNotifications">Aktifkan Notifikasi</button><button class="button secondary" id="testNotification" hidden>Kirim Notifikasi Uji</button></div><p class="settings-note">Untuk menerima notifikasi saat aplikasi tertutup, buka situs melalui HTTPS, izinkan notifikasi, dan pasang Stockly ke layar utama HP jika menggunakan iPhone.</p><div class="settings-actions"><button class="button secondary" id="logoutButton">Keluar dari akun</button></div></section>
