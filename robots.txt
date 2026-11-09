@@ -1,4 +1,6 @@
 User-agent: *
 Allow: /
 
+Sitemap: https://www.stocklyinventory.web.id/sitemap.xml
 Sitemap: https://stocklyinventory.web.id/sitemap.xml
+
