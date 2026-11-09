@@ -754,7 +754,7 @@ async function refresh() {
   render();
 }
 
-const pages = { overview: 'Ringkasan', products: 'Data Produk', sessions: 'Stock Opname', reports: 'Laporan', feedback: 'Kritik & Saran', admin: 'Admin & Monitoring', settings: 'Pengaturan' };
+const pages = { overview: 'Ringkasan', products: 'Data Produk', sessions: 'Stock Opname', reports: 'Laporan', profile: 'Profil Toko & Usaha', feedback: 'Kritik & Saran', admin: 'Admin & Monitoring', settings: 'Pengaturan' };
 
 function toggleSidebar(forceState) {
   const sidebar = $('#sidebar');
@@ -1809,7 +1809,21 @@ function openImportCsvModal() {
   });
 }
 
-// Feature 4: Profil Toko & Usaha Submit Handler
+// Feature 4: Profil Toko & Usaha
+function updateStorePreview(user = currentUser) {
+  const sName = user?.storeName || $('#settingStoreName')?.value.trim() || 'STOCKLY INVENTORY';
+  const sAddr = user?.storeAddress || $('#settingStoreAddress')?.value.trim() || 'Jl. Alamat Toko / Gudang Belum Diatur';
+  const sPhone = user?.storePhone || $('#settingStorePhone')?.value.trim();
+  
+  if ($('#previewStoreName')) $('#previewStoreName').textContent = sName;
+  if ($('#previewStoreAddress')) $('#previewStoreAddress').textContent = sAddr;
+  if ($('#previewStorePhone')) $('#previewStorePhone').textContent = sPhone ? `Telp / WA: ${sPhone}` : 'Telp / WA: -';
+}
+
+$('#settingStoreName')?.addEventListener('input', () => updateStorePreview());
+$('#settingStoreAddress')?.addEventListener('input', () => updateStorePreview());
+$('#settingStorePhone')?.addEventListener('input', () => updateStorePreview());
+
 $('#storeProfileForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   const btn = $('#btnSaveStoreProfile');
@@ -1826,6 +1840,7 @@ $('#storeProfileForm')?.addEventListener('submit', async e => {
     if (res.user) {
       currentUser = { ...currentUser, ...res.user };
       if ($('#topWorkspaceName') && currentUser.storeName) $('#topWorkspaceName').textContent = currentUser.storeName;
+      updateStorePreview(currentUser);
     }
     toast('Profil toko & usaha berhasil disimpan!');
   } catch (err) {
@@ -2353,7 +2368,13 @@ async function enterApp(user) {
   if ($('#settingStorePhone')) $('#settingStorePhone').value = user.storePhone || '';
   if ($('#settingStoreAddress')) $('#settingStoreAddress').value = user.storeAddress || '';
   if ($('#settingStoreFooter')) $('#settingStoreFooter').value = user.storeFooter || '';
+  if ($('#profileUserName')) $('#profileUserName').value = user.name || '';
+  if ($('#profilePageName')) $('#profilePageName').textContent = user.name || 'Pengguna';
+  if ($('#profilePageEmail')) $('#profilePageEmail').textContent = user.email || '—';
+  if ($('#profilePageRole')) $('#profilePageRole').textContent = isAdmin ? 'Administrator' : (user.role || 'Pengguna');
+  if ($('#profilePageAvatar')) $('#profilePageAvatar').textContent = initials;
   if ($('#topWorkspaceName') && user.storeName) $('#topWorkspaceName').textContent = user.storeName;
+  updateStorePreview(user);
   $$('.admin-only').forEach(el => el.hidden = !isAdmin);
   go(location.hash.slice(1) === 'admin' && isAdmin ? 'admin' : 'overview');
   await refresh();
