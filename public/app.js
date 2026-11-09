@@ -1435,6 +1435,7 @@ function openPrintReceiptModal(item) {
   const storePhone = currentUser?.storePhone || '';
   const storeAddress = currentUser?.storeAddress || '';
   const storeFooter = currentUser?.storeFooter || 'Barang telah diterima dalam keadaan baik dan lengkap.';
+  const storeLogo = currentUser?.storeLogo || '';
   const docDate = new Date(item.createdAt || Date.now()).toLocaleDateString('id-ID', {
     day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
   });
@@ -1467,10 +1468,13 @@ function openPrintReceiptModal(item) {
           <!-- A4 SURAT JALAN -->
           <div id="printA4View" class="surat-jalan-sheet">
             <div class="sj-header">
-              <div class="sj-brand">
-                <h2>${esc(storeName)}</h2>
-                ${storeAddress ? `<p>${esc(storeAddress)}</p>` : ''}
-                ${storePhone ? `<p>Telp / WA: ${esc(storePhone)}</p>` : ''}
+              <div class="sj-brand" style="display:flex; align-items:flex-start; gap:12px">
+                ${storeLogo ? `<img src="${storeLogo}" alt="Logo" style="height:44px; max-width:120px; object-fit:contain; border-radius:4px; margin-top:2px" />` : ''}
+                <div>
+                  <h2>${esc(storeName)}</h2>
+                  ${storeAddress ? `<p>${esc(storeAddress)}</p>` : ''}
+                  ${storePhone ? `<p>Telp / WA: ${esc(storePhone)}</p>` : ''}
+                </div>
               </div>
               <div class="sj-doc-badge">
                 <h1>SURAT JALAN</h1>
@@ -1538,6 +1542,7 @@ function openPrintReceiptModal(item) {
           <!-- THERMAL 58mm / 80mm VIEW -->
           <div id="printThermalView" class="thermal-sheet width-58 hidden">
             <div class="thermal-center">
+              ${storeLogo ? `<img src="${storeLogo}" alt="Logo" style="height:32px; max-width:80px; object-fit:contain; margin:0 auto 4px auto; display:block" />` : ''}
               <h3>${esc(storeName)}</h3>
               ${storeAddress ? `<p style="font-size:10px">${esc(storeAddress)}</p>` : ''}
               ${storePhone ? `<p style="font-size:10px">WA: ${esc(storePhone)}</p>` : ''}
@@ -1810,6 +1815,40 @@ function openImportCsvModal() {
 }
 
 // Feature 4: Profil Toko & Usaha
+let currentStoreLogoData = '';
+
+function updateStoreLogoUI(logoData) {
+  currentStoreLogoData = logoData || '';
+  const imgPreview = $('#storeLogoPreviewImg');
+  const placeholder = $('#storeLogoPlaceholder');
+  const btnRemove = $('#btnRemoveLogo');
+  const previewDocLogo = $('#previewStoreLogo');
+
+  if (currentStoreLogoData) {
+    if (imgPreview) {
+      imgPreview.src = currentStoreLogoData;
+      imgPreview.classList.remove('hidden');
+    }
+    if (placeholder) placeholder.classList.add('hidden');
+    if (btnRemove) btnRemove.classList.remove('hidden');
+    if (previewDocLogo) {
+      previewDocLogo.src = currentStoreLogoData;
+      previewDocLogo.classList.remove('hidden');
+    }
+  } else {
+    if (imgPreview) {
+      imgPreview.src = '';
+      imgPreview.classList.add('hidden');
+    }
+    if (placeholder) placeholder.classList.remove('hidden');
+    if (btnRemove) btnRemove.classList.add('hidden');
+    if (previewDocLogo) {
+      previewDocLogo.src = '';
+      previewDocLogo.classList.add('hidden');
+    }
+  }
+}
+
 function updateStorePreview(user = currentUser) {
   const sName = user?.storeName || $('#settingStoreName')?.value.trim() || 'STOCKLY INVENTORY';
   const sAddr = user?.storeAddress || $('#settingStoreAddress')?.value.trim() || 'Jl. Alamat Toko / Gudang Belum Diatur';
@@ -1818,7 +1857,59 @@ function updateStorePreview(user = currentUser) {
   if ($('#previewStoreName')) $('#previewStoreName').textContent = sName;
   if ($('#previewStoreAddress')) $('#previewStoreAddress').textContent = sAddr;
   if ($('#previewStorePhone')) $('#previewStorePhone').textContent = sPhone ? `Telp / WA: ${sPhone}` : 'Telp / WA: -';
+  if (user?.storeLogo !== undefined) {
+    updateStoreLogoUI(user.storeLogo);
+  }
 }
+
+$('#btnChooseLogo')?.addEventListener('click', () => $('#storeLogoInput')?.click());
+
+$('#storeLogoInput')?.addEventListener('change', e => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  if (file.size > 2 * 1024 * 1024) {
+    toast('Ukuran gambar terlalu besar. Maksimal 2 MB.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const maxDim = 280;
+      let w = img.width;
+      let h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/png', 0.9);
+      updateStoreLogoUI(dataUrl);
+      toast('Logo berhasil dipilih! Klik "Simpan Profil Usaha" untuk menyimpan.');
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+$('#btnRemoveLogo')?.addEventListener('click', () => {
+  if (confirm('Hapus logo toko?')) {
+    updateStoreLogoUI('');
+    if ($('#storeLogoInput')) $('#storeLogoInput').value = '';
+    toast('Logo dihapus. Klik "Simpan Profil Usaha" untuk menerapkan.');
+  }
+});
 
 $('#settingStoreName')?.addEventListener('input', () => updateStorePreview());
 $('#settingStoreAddress')?.addEventListener('input', () => updateStorePreview());
@@ -1832,15 +1923,17 @@ $('#storeProfileForm')?.addEventListener('submit', async e => {
   const storePhone = $('#settingStorePhone')?.value.trim();
   const storeAddress = $('#settingStoreAddress')?.value.trim();
   const storeFooter = $('#settingStoreFooter')?.value.trim();
+  const storeLogo = currentStoreLogoData;
   try {
     const res = await api('/api/auth/profile', {
       method: 'PUT',
-      body: JSON.stringify({ storeName, storePhone, storeAddress, storeFooter })
+      body: JSON.stringify({ storeName, storePhone, storeAddress, storeFooter, storeLogo })
     });
     if (res.user) {
       currentUser = { ...currentUser, ...res.user };
       if ($('#topWorkspaceName') && currentUser.storeName) $('#topWorkspaceName').textContent = currentUser.storeName;
       updateStorePreview(currentUser);
+      updateStoreLogoUI(currentUser.storeLogo);
     }
     toast('Profil toko & usaha berhasil disimpan!');
   } catch (err) {

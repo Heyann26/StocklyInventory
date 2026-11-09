@@ -923,6 +923,29 @@
           </div>
 
           <form id="storeProfileForm" class="form-grid">
+            <!-- Logo Toko Upload Field -->
+            <div class="form-field full">
+              <label>Logo Toko / Perusahaan</label>
+              <div class="flex items-center gap-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                <div id="storeLogoPreviewWrap" class="w-16 h-16 rounded-lg border border-gray-300 bg-white flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
+                  <img id="storeLogoPreviewImg" src="" alt="Logo" class="w-full h-full object-contain hidden">
+                  <span id="storeLogoPlaceholder" class="text-xs font-bold text-gray-400 text-center px-1">Logo</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <input type="file" id="storeLogoInput" accept="image/png,image/jpeg,image/webp,image/svg+xml" class="hidden">
+                    <button type="button" class="button secondary px-3 py-1.5 text-xs font-semibold" id="btnChooseLogo">
+                      📁 Unggah Logo
+                    </button>
+                    <button type="button" class="button secondary text-xs font-semibold text-rose-600 hover:bg-rose-50 border-rose-200 hidden" id="btnRemoveLogo">
+                      Hapus
+                    </button>
+                  </div>
+                  <span class="text-[11px] text-gray-500 mt-1 block">Format: PNG, JPG, atau WebP (logo akan otomatis tampil di Surat Jalan &amp; Struk).</span>
+                </div>
+              </div>
+            </div>
+
             <div class="form-field full">
               <label>Nama Toko / Perusahaan *</label>
               <input name="storeName" id="settingStoreName" placeholder="Contoh: CV Berkah Abadi Jaya" required>
@@ -977,9 +1000,14 @@
           <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider mb-2">Pratinjau Kop Surat Jalan</h3>
           <p class="text-[11px] text-gray-400 mb-3">Tampilan langsung kepala dokumen saat dicetak:</p>
           <div class="p-3 bg-gray-50 border border-dashed border-gray-300 rounded text-xs text-gray-700">
-            <strong class="block text-sm text-gray-900" id="previewStoreName">STOCKLY INVENTORY</strong>
-            <span class="block text-[11px] text-gray-600" id="previewStoreAddress">Jl. Alamat Toko / Gudang Belum Diatur</span>
-            <span class="block text-[11px] text-gray-500" id="previewStorePhone">Telp / WA: -</span>
+            <div class="flex items-start gap-2.5 mb-2">
+              <img id="previewStoreLogo" src="" alt="Logo" class="h-10 max-w-[80px] object-contain hidden shrink-0 rounded">
+              <div class="min-w-0 flex-1">
+                <strong class="block text-sm text-gray-900" id="previewStoreName">STOCKLY INVENTORY</strong>
+                <span class="block text-[11px] text-gray-600 truncate" id="previewStoreAddress">Jl. Alamat Toko / Gudang Belum Diatur</span>
+                <span class="block text-[11px] text-gray-500" id="previewStorePhone">Telp / WA: -</span>
+              </div>
+            </div>
             <div class="border-b-2 border-gray-900 my-2"></div>
             <div class="text-right text-[10px] text-red-600 font-bold uppercase tracking-wider">CONTOH DOKUMEN RESMI</div>
           </div>
