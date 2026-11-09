@@ -778,6 +778,14 @@ function toggleSidebar(forceState) {
   backdrop?.classList.toggle('active', isOpen);
 }
 
+function getCurrentPage() {
+  const cleanPath = location.pathname.replace(/^\/+|\/+$/g, '').split('/')[0];
+  if (pages[cleanPath]) return cleanPath;
+  const hash = location.hash.replace(/^#+/, '');
+  if (pages[hash]) return hash;
+  return 'overview';
+}
+
 function go(page) {
   if (!pages[page] || (page === 'admin' && currentUser?.role?.toLowerCase() !== 'admin')) return;
   $$('.page').forEach(p => p.classList.toggle('active-page', p.id === `page-${page}`));
@@ -785,12 +793,21 @@ function go(page) {
   $$('.bottom-nav-item[data-page]').forEach(a => a.classList.toggle('active', a.dataset.page === page));
   if ($('#breadcrumb')) $('#breadcrumb').textContent = pages[page];
   toggleSidebar(false);
-  history.replaceState(null, '', `#${page}`);
+  const targetPath = page === 'overview' ? '/' : `/${page}`;
+  if (location.pathname !== targetPath || location.hash) {
+    history.pushState(null, '', targetPath);
+  }
   window.scrollTo({ top: 0, behavior: 'smooth' });
   if (page === 'admin') loadAdmin();
   if (page === 'feedback') loadMyFeedback();
   if (page === 'settings') refreshPushState();
 }
+
+window.addEventListener('popstate', () => {
+  if (currentUser) {
+    go(getCurrentPage());
+  }
+});
 
 function closeModal() {
   if (window.__activeCameraStream) {
@@ -2449,6 +2466,7 @@ function setAuthMode(mode) {
     if ($('#authTitle')) $('#authTitle').textContent = registration ? 'Buat Akun Stockly' : 'Selamat datang kembali';
     if ($('#authSubtitle')) $('#authSubtitle').textContent = registration ? 'Daftar untuk mulai mengelola stok gudang.' : 'Masuk ke akun untuk melanjutkan ke dashboard stok.';
     if ($('#authSubmit')) $('#authSubmit').textContent = registration ? 'Buat Akun Baru' : 'Masuk ke Dashboard';
+    if ($('#authEmailLabel span')) $('#authEmailLabel span').textContent = registration ? 'Email Akun (Unik)' : 'Email atau Nama Pengguna';
     if ($('#forgotPasswordWrap')) $('#forgotPasswordWrap').hidden = registration;
     $$('[data-auth-mode]').forEach(tab => tab.classList.toggle('selected', tab.dataset.authMode === mode));
   }
@@ -2491,9 +2509,8 @@ async function enterApp(user, shouldRefresh = true) {
   if (user.storeLogo) updateStoreLogoUI(user.storeLogo);
   $$('.admin-only').forEach(el => el.hidden = !isAdmin);
 
-  // Preserve current active route on reload/enter
-  const currentHash = location.hash.slice(1);
-  const targetPage = pages[currentHash] ? currentHash : 'overview';
+  // Preserve current active route on reload/enter (clean URLs without #)
+  const targetPage = getCurrentPage();
   go(targetPage === 'admin' && !isAdmin ? 'overview' : targetPage);
 
   if (shouldRefresh) {
@@ -2652,6 +2669,9 @@ $('#authForm').addEventListener('submit', async e => {
   e.preventDefault();
   const form = e.currentTarget, data = Object.fromEntries(new FormData(form));
   const endpoint = authMode === 'register' ? '/api/auth/register' : '/api/auth/login';
+  if (authMode === 'login') {
+    delete data.name;
+  }
   try {
     const result = await api(endpoint, { method: 'POST', body: JSON.stringify(data) });
     if (result.token) localStorage.setItem('stokly_token', result.token);
@@ -2692,7 +2712,7 @@ async function logout(event) {
     document.documentElement.classList.remove('has-session');
     document.body.classList.add('auth-required');
     if ($('#authScreen')) $('#authScreen').hidden = false;
-    location.hash = '';
+    history.pushState(null, '', '/');
     setAuthMode('login');
     toast('Anda sudah keluar.');
   } catch (error) {
@@ -2702,6 +2722,7 @@ async function logout(event) {
     document.documentElement.classList.remove('has-session');
     document.body.classList.add('auth-required');
     if ($('#authScreen')) $('#authScreen').hidden = false;
+    history.pushState(null, '', '/');
     toast(`Keluar: ${error.message}`);
   } finally {
     buttons.forEach(button => {
@@ -2947,7 +2968,7 @@ window.addEventListener('error', e => {
   if (currentUser) {
     api('/api/client-errors', {
       method: 'POST',
-      body: JSON.stringify({ message: e.message, stack: e.error?.stack || '', page: location.hash })
+      body: JSON.stringify({ message: e.message, stack: e.error?.stack || '', page: location.pathname })
     }).catch(() => {});
   }
 });
@@ -2956,7 +2977,7 @@ window.addEventListener('unhandledrejection', e => {
   if (currentUser) {
     api('/api/client-errors', {
       method: 'POST',
-      body: JSON.stringify({ message: String(e.reason?.message || e.reason || 'Unhandled promise rejection'), stack: e.reason?.stack || '', page: location.hash })
+      body: JSON.stringify({ message: String(e.reason?.message || e.reason || 'Unhandled promise rejection'), stack: e.reason?.stack || '', page: location.pathname })
     }).catch(() => {});
   }
 });
@@ -2967,13 +2988,13 @@ $('#topQuickAdd')?.addEventListener('click', () => {
 });
 
 $('#topSettingsBtn')?.addEventListener('click', () => {
-  location.hash = '#settings';
+  go('settings');
 });
 
 $('#globalSearchInput')?.addEventListener('input', e => {
   const query = e.target.value.toLowerCase().trim();
   if (query) {
-    location.hash = '#products';
+    go('products');
     const pSearch = $('#productSearch');
     if (pSearch) {
       pSearch.value = query;

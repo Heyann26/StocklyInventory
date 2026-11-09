@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Stockly Stock Opname",
-  "short_name": "Stockly",
+  "name": "StocklyInventory",
+  "short_name": "StocklyInventory",
   "description": "Kelola inventaris dan stock opname dengan mudah.",
   "start_url": "/",
   "scope": "/",

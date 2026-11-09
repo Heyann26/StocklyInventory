@@ -8,6 +8,10 @@
     {
       "source": "/api/:path*",
       "destination": "/server.js?path=:path*"
+    },
+    {
+      "source": "/(overview|products|sessions|reports|profile|feedback|admin|settings)",
+      "destination": "/index.html"
     }
   ]
 }
