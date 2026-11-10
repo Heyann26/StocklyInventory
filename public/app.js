@@ -826,7 +826,7 @@ function closeModal() {
 function modalFrame(title, subtitle, body, submitText = 'Simpan', secondaryText = 'Batal') {
   $('#modal').innerHTML = `
     <div class="modal-head">
-      <div><h2>${title}</h2><p>${subtitle}</p></div>
+      <div><h2>${title}</h2>${subtitle ? `<p>${subtitle}</p>` : ''}</div>
       <button class="close-modal" data-close aria-label="Tutup">×</button>
     </div>
     <div class="modal-body">${body}</div>
@@ -2594,7 +2594,7 @@ function openAccountSwitcherModal() {
       <div class="pt-2 border-t border-gray-100">
         <button type="button" id="btnModalAddNewAccount" class="w-full py-2.5 px-3 border border-dashed border-red-300 hover:border-red-500 hover:bg-red-50/50 rounded-xl text-xs font-semibold text-red-600 flex items-center justify-center gap-2 transition">
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-          + Tambah Akun Lain ke Perangkat Ini (Switch Akun)
+          + Tambah Akun Lain ke Perangkat Ini
         </button>
       </div>
 
@@ -2610,7 +2610,7 @@ function openAccountSwitcherModal() {
     </div>
   `;
 
-  modalFrame('Beralih / Tambah Akun', 'Kelola multi-akun dan beralih cepat seperti Instagram.', bodyHtml);
+  modalFrame('Beralih / Tambah Akun', '', bodyHtml);
   const foot = $('.modal-foot');
   if (foot) foot.style.display = 'none';
 
