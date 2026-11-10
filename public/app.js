@@ -1293,27 +1293,63 @@ async function saveSessionCounts(id, complete) {
 }
 
 function downloadCsv(filename, rows) {
-  const csv = rows.map(r => r.map(v => `"${String(v ?? '').replaceAll('"', '""')}"`).join(',')).join('\r\n');
-  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const delimiter = ';';
+  // Standard Excel compatibility: \ufeff (UTF-8 BOM) + sep=; directive ensures Excel automatically separates columns into neat cells
+  const csvBody = rows.map(r => r.map(v => `"${String(v ?? '').replaceAll('"', '""')}"`).join(delimiter)).join('\r\n');
+  const fullContent = '\ufeffsep=' + delimiter + '\r\n' + csvBody;
+  const blob = new Blob([fullContent], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = filename;
   a.click();
   URL.revokeObjectURL(a.href);
-  toast('File CSV berhasil diunduh.');
+  toast('File CSV rapi berhasil diunduh (terbuka otomatis rapi di Excel & Sheets).');
 }
 
 function exportProducts() {
+  const list = dashboard.products || [];
   downloadCsv('stockly-inventaris.csv', [
-    ['SKU', 'Nama Produk', 'Kategori', 'Lokasi', 'Stok Tersedia', 'Stok Minimum', 'Satuan', 'Harga Modal', 'Nilai Stok'],
-    ...dashboard.products.map(p => [p.sku, p.name, p.category, p.location, p.stock, p.minStock, p.unit, p.cost, p.stock * p.cost])
+    ['No', 'SKU', 'Nama Produk', 'Kategori', 'Lokasi Simpan', 'Stok Tersedia', 'Stok Minimum', 'Satuan', 'Harga Modal (Rp)', 'Total Nilai Stok (Rp)', 'Tanggal Kadaluwarsa'],
+    ...list.map((p, idx) => [
+      idx + 1,
+      p.sku || '-',
+      p.name || '-',
+      p.category || 'Umum',
+      p.location || 'Gudang Utama',
+      p.stock ?? 0,
+      p.minStock ?? 0,
+      p.unit || 'pcs',
+      p.cost ?? 0,
+      (p.stock || 0) * (p.cost || 0),
+      p.expiryDate || '-'
+    ])
   ]);
 }
 
 function exportReport() {
-  downloadCsv('stockly-laporan-stock-opname.csv', [
-    ['SKU', 'Nama Produk', 'Kategori', 'Lokasi', 'Stok Tersedia', 'Stok Minimum', 'Hasil Hitung', 'Selisih', 'Nilai Stok'],
-    ...dashboard.products.map(p => [p.sku, p.name, p.category, p.location, p.stock, p.minStock, p.lastCounted ?? '', p.lastVariance ?? '', p.stock * p.cost])
+  const list = dashboard.products || [];
+  const dateStr = new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date());
+  downloadCsv(`stockly-laporan-opname-${dateStr.replaceAll(' ', '-')}.csv`, [
+    ['No', 'SKU', 'Nama Produk', 'Kategori', 'Lokasi', 'Stok Sistem', 'Hasil Hitung Fisik', 'Selisih (Unit)', 'Satuan', 'Harga Modal (Rp)', 'Total Nilai Selisih (Rp)', 'Status Akurasi'],
+    ...list.map((p, idx) => {
+      const counted = p.lastCounted !== undefined && p.lastCounted !== null && p.lastCounted !== '' ? Number(p.lastCounted) : p.stock;
+      const variance = counted - p.stock;
+      const status = variance === 0 ? 'Sesuai' : (variance > 0 ? `Surplus (+${variance})` : `Selisih Minus (${variance})`);
+      return [
+        idx + 1,
+        p.sku || '-',
+        p.name || '-',
+        p.category || 'Umum',
+        p.location || 'Gudang Utama',
+        p.stock ?? 0,
+        counted,
+        variance,
+        p.unit || 'pcs',
+        p.cost ?? 0,
+        variance * (p.cost || 0),
+        status
+      ];
+    })
   ]);
 }
 
@@ -1714,10 +1750,10 @@ function openImportCsvModal() {
   if (submitBtn) submitBtn.disabled = true;
 
   $('#btnDownloadCsvTemplate')?.addEventListener('click', () => {
-    const csvContent = 'Nama Produk,SKU,Kategori,Lokasi,Satuan,Stok,Stok Minimum,Harga Modal,Kedaluwarsa\r\n' +
-      'Kopi Robusta Lampung 250g,KOP-ROB-250,Minuman,Rak A-01,pcs,50,10,45000,2027-01-01\r\n' +
-      'Gula Pasir Kristal 1kg,GUL-PAS-1KG,Sembako,Rak B-02,kg,100,20,16500,2027-06-30\r\n' +
-      'Minyak Goreng Sawit 2L,MYK-GOR-2L,Sembako,Rak B-01,botol,30,10,34000,2027-12-31\r\n';
+    const csvContent = '\ufeffsep=;\r\nNama Produk;SKU;Kategori;Lokasi;Satuan;Stok;Stok Minimum;Harga Modal;Kedaluwarsa\r\n' +
+      'Kopi Robusta Lampung 250g;KOP-ROB-250;Minuman;Rak A-01;pcs;50;10;45000;2027-01-01\r\n' +
+      'Gula Pasir Kristal 1kg;GUL-PAS-1KG;Sembako;Rak B-02;kg;100;20;16500;2027-06-30\r\n' +
+      'Minyak Goreng Sawit 2L;MYK-GOR-2L;Sembako;Rak B-01;botol;30;10;34000;2027-12-31\r\n';
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1751,7 +1787,10 @@ function openImportCsvModal() {
   };
 
   const parseCsv = (text) => {
-    const lines = text.split(/\r\n|\n|\r/).filter(l => l.trim().length > 0);
+    let lines = text.split(/\r\n|\n|\r/).filter(l => l.trim().length > 0);
+    if (lines.length > 0 && lines[0].toLowerCase().startsWith('sep=')) {
+      lines = lines.slice(1);
+    }
     if (lines.length < 2) {
       toast('File CSV tidak memiliki baris data produk.');
       return;
