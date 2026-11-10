@@ -2466,7 +2466,8 @@ function setAuthMode(mode) {
     if ($('#authTitle')) $('#authTitle').textContent = registration ? 'Buat Akun Stockly' : 'Selamat datang kembali';
     if ($('#authSubtitle')) $('#authSubtitle').textContent = registration ? 'Daftar untuk mulai mengelola stok gudang.' : 'Masuk ke akun untuk melanjutkan ke dashboard stok.';
     if ($('#authSubmit')) $('#authSubmit').textContent = registration ? 'Buat Akun Baru' : 'Masuk ke Dashboard';
-    if ($('#authEmailLabel span')) $('#authEmailLabel span').textContent = registration ? 'Email Akun (Unik)' : 'Email atau Nama Pengguna';
+    if ($('#authEmailLabel span')) $('#authEmailLabel span').textContent = registration ? 'Email' : 'Email atau Nama Pengguna';
+    if ($('#authEmailLabel input')) $('#authEmailLabel input').placeholder = registration ? 'nama@email.com' : 'nama@email.com atau nama akun';
     if ($('#forgotPasswordWrap')) $('#forgotPasswordWrap').hidden = registration;
     $$('[data-auth-mode]').forEach(tab => tab.classList.toggle('selected', tab.dataset.authMode === mode));
   }
