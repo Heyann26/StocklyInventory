@@ -1883,10 +1883,12 @@ function updateStorePreview(user = currentUser) {
   const sName = user?.storeName || $('#settingStoreName')?.value.trim() || 'STOCKLY INVENTORY';
   const sAddr = user?.storeAddress || $('#settingStoreAddress')?.value.trim() || 'Jl. Alamat Toko / Gudang Belum Diatur';
   const sPhone = user?.storePhone || $('#settingStorePhone')?.value.trim();
+  const uName = $('#profileUserName')?.value.trim() || user?.name;
   
   if ($('#previewStoreName')) $('#previewStoreName').textContent = sName;
   if ($('#previewStoreAddress')) $('#previewStoreAddress').textContent = sAddr;
   if ($('#previewStorePhone')) $('#previewStorePhone').textContent = sPhone ? `Telp / WA: ${sPhone}` : 'Telp / WA: -';
+  if (uName && $('#profilePageName')) $('#profilePageName').textContent = uName;
   if (user?.storeLogo !== undefined) {
     updateStoreLogoUI(user.storeLogo);
   }
@@ -1944,11 +1946,13 @@ $('#btnRemoveLogo')?.addEventListener('click', () => {
 $('#settingStoreName')?.addEventListener('input', () => updateStorePreview());
 $('#settingStoreAddress')?.addEventListener('input', () => updateStorePreview());
 $('#settingStorePhone')?.addEventListener('input', () => updateStorePreview());
+$('#profileUserName')?.addEventListener('input', () => updateStorePreview());
 
 $('#storeProfileForm')?.addEventListener('submit', async e => {
   e.preventDefault();
   const btn = $('#btnSaveStoreProfile');
   if (btn) btn.disabled = true;
+  const name = $('#profileUserName')?.value.trim();
   const storeName = $('#settingStoreName')?.value.trim();
   const storePhone = $('#settingStorePhone')?.value.trim();
   const storeAddress = $('#settingStoreAddress')?.value.trim();
@@ -1957,7 +1961,7 @@ $('#storeProfileForm')?.addEventListener('submit', async e => {
   try {
     const res = await api('/api/auth/profile', {
       method: 'PUT',
-      body: JSON.stringify({ storeName, storePhone, storeAddress, storeFooter, storeLogo })
+      body: JSON.stringify({ name, storeName, storePhone, storeAddress, storeFooter, storeLogo })
     });
     if (res.user) {
       currentUser = { ...currentUser, ...res.user };
@@ -1966,11 +1970,12 @@ $('#storeProfileForm')?.addEventListener('submit', async e => {
         localStorage.setItem('stokly_token', res.token);
       }
       localStorage.setItem('stokly_user', JSON.stringify(currentUser));
-      if ($('#topWorkspaceName') && currentUser.storeName) $('#topWorkspaceName').textContent = currentUser.storeName;
+      saveAccountToStorage(currentUser);
+      applyUser(currentUser, false);
       updateStorePreview(currentUser);
       updateStoreLogoUI(currentUser.storeLogo);
     }
-    toast('Profil toko & usaha berhasil disimpan!');
+    toast('Profil toko & nama penanggung jawab berhasil disimpan!');
   } catch (err) {
     toast(err.message || 'Gagal menyimpan profil usaha');
   } finally {
