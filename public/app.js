@@ -566,55 +566,107 @@ function renderSessionList(sessions) {
 }
 
 // Sub-widget 8: Pemantauan Real-time & Activity Audit Trail
+let currentActivityTab = 'all';
+
+function getActivityCategory(a) {
+  if (a.category) return a.category;
+  const t = (a.text || '').toLowerCase();
+  if (
+    t.includes('akun') ||
+    t.includes('peran') ||
+    t.includes('role') ||
+    t.includes('kata sandi') ||
+    t.includes('password') ||
+    t.includes('dibatalkan') ||
+    t.includes('disetujui') ||
+    t.includes('ditolak') ||
+    t.includes('reset') ||
+    t.includes('hapus') ||
+    t.includes('izin') ||
+    t.includes('setup') ||
+    t.includes('administrator') ||
+    t.includes('pengguna baru') ||
+    t.includes('profil')
+  ) {
+    return 'audit';
+  }
+  return 'inventory';
+}
+
 function renderActivityAuditTrail() {
   const container = $('#activityAuditList');
   if (!container) return;
 
   const { activities = [] } = dashboard;
   
-  // Filter activities by date range and location if set
-  const filteredActivities = activities.filter(a => {
+  // 1. Filter activities by date range and location if set
+  const dateLocFiltered = activities.filter(a => {
     const matchDate = isDateInRange(a.time);
     const matchLoc = !activeLocation || (a.text || '').toLowerCase().includes(activeLocation.toLowerCase());
     return matchDate && matchLoc;
   });
 
+  // 2. Filter by Category Tab ('all' | 'inventory' | 'audit')
+  const filteredActivities = dateLocFiltered.filter(a => {
+    if (currentActivityTab === 'all') return true;
+    return getActivityCategory(a) === currentActivityTab;
+  });
+
+  // Update tab visual styles
+  $$('.activity-tab-btn').forEach(btn => {
+    const filter = btn.dataset.activityFilter;
+    const isSelected = filter === currentActivityTab;
+    btn.classList.toggle('bg-white', isSelected);
+    btn.classList.toggle('shadow-xs', isSelected);
+    btn.classList.toggle('text-gray-900', isSelected);
+    btn.classList.toggle('font-bold', isSelected);
+    btn.classList.toggle('text-gray-500', !isSelected);
+  });
+
   // STRICT EMPTY STATE RULE:
-  // "Jika akun baru dibuat atau tidak ada data, JANGAN tampilkan data dummy atau aktivitas dari akun pengguna lain.
-  // Tampilkan antarmuka kosong yang rapi di tengah dengan pesan: 'Belum ada aktivitas'."
   if (!filteredActivities.length) {
+    const emptyLabels = {
+      all: 'Belum ada riwayat aktivitas',
+      inventory: 'Belum ada riwayat mutasi stok',
+      audit: 'Belum ada catatan log audit keamanan'
+    };
+    const emptySub = {
+      all: 'Catatan mutasi dan opname akan muncul di sini secara real-time.',
+      inventory: 'Aktivitas barang masuk, keluar, dan opname fisik akan tercatat di sini.',
+      audit: 'Aktivitas perubahan akun, profil, dan persetujuan keamanan akan tercatat di sini.'
+    };
     container.innerHTML = `
-      <div class="flex flex-col items-center justify-center p-8 text-center my-auto">
-        <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-2">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <div class="flex flex-col items-center justify-center p-6 text-center my-auto">
+        <div class="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-2">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         </div>
-        <span class="text-xs font-semibold text-gray-500">Belum ada aktivitas</span>
-        <p class="text-[11px] text-gray-400 mt-0.5">Catatan mutasi dan opname akan muncul di sini secara real-time.</p>
+        <span class="text-xs font-semibold text-gray-700">${emptyLabels[currentActivityTab] || 'Belum ada aktivitas'}</span>
+        <p class="text-[11px] text-gray-400 mt-0.5">${emptySub[currentActivityTab] || 'Catatan operasional akan muncul di sini.'}</p>
       </div>
     `;
     return;
   }
 
-  const iconsMap = {
-    complete: { icon: '<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>', color: 'bg-emerald-500 text-white' },
-    edit: { icon: '<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>', color: 'bg-brand-500 text-white' },
-    start: { icon: '<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', color: 'bg-blue-500 text-white' },
-    add: { icon: '<svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>', color: 'bg-amber-500 text-white' }
-  };
+  container.innerHTML = filteredActivities.slice(0, 20).map(a => {
+    const isAudit = getActivityCategory(a) === 'audit';
+    const badgeLabel = isAudit ? 'Audit' : 'Stok';
+    const badgeClass = isAudit ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    const iconBadge = isAudit 
+      ? '<span class="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px] shrink-0 mt-0.5 shadow-xs"><svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>'
+      : '<span class="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] shrink-0 mt-0.5 shadow-xs"><svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></span>';
 
-  container.innerHTML = filteredActivities.slice(0, 15).map(a => {
-    const meta = iconsMap[a.type] || { icon: '•', color: 'bg-gray-400 text-white' };
     return `
-      <div class="relative flex items-start gap-3 text-left">
-        <span class="w-5 h-5 rounded-full ${meta.color} flex items-center justify-center text-[10px] font-bold shrink-0 z-10 shadow-xs -ml-2.5 mt-0.5">
-          ${meta.icon}
-        </span>
+      <div class="p-2.5 bg-gray-50/70 hover:bg-gray-50 rounded-lg border border-gray-100 transition flex items-start gap-2.5 text-left">
+        ${iconBadge}
         <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-2 mb-0.5">
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded border ${badgeClass} uppercase tracking-wider">${badgeLabel}</span>
+            <span class="text-[10px] text-gray-400 shrink-0 font-medium">${timeAgo(a.time)}</span>
+          </div>
           <p class="text-xs font-medium text-gray-900 leading-snug break-words">${esc(a.text)}</p>
-          <div class="text-[10px] text-gray-400 flex items-center gap-1.5 mt-0.5">
-            <span class="font-semibold text-gray-600">${esc(a.user)}</span>
-            <span>·</span>
-            <span>${timeAgo(a.time)}</span>
+          <div class="text-[10px] text-gray-500 flex items-center gap-1 mt-1">
+            <svg class="w-3 h-3 text-gray-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span class="font-semibold text-gray-700 truncate">${esc(a.user || 'Sistem')}</span>
           </div>
         </div>
       </div>
@@ -2031,6 +2083,14 @@ $('#sessionFilter')?.addEventListener('change', renderSessions);
 $('#exportBtn')?.addEventListener('click', exportProducts);
 $('#reportExport')?.addEventListener('click', exportReport);
 $('#notificationButton')?.addEventListener('click', () => go('settings'));
+
+// Activity Category Tab Filter Listener
+$('#activityTabFilter')?.addEventListener('click', e => {
+  const btn = e.target.closest('.activity-tab-btn');
+  if (!btn) return;
+  currentActivityTab = btn.dataset.activityFilter || 'all';
+  renderActivityAuditTrail();
+});
 
 // Quick Actions Event Listeners
 $('#quickActionScan')?.addEventListener('click', openBarcodeScannerModal);
