@@ -28,6 +28,7 @@ try {
     currentUser.token = cachedToken;
     document.body.classList.remove('auth-required');
     if ($('#authScreen')) $('#authScreen').hidden = true;
+    if ($('#bottomNav')) $('#bottomNav').hidden = false;
   }
 } catch (e) {}
 
@@ -58,6 +59,7 @@ async function api(url, options = {}) {
         currentUser = null;
         document.body.classList.add('auth-required');
         if ($('#authScreen')) $('#authScreen').hidden = false;
+        if ($('#bottomNav')) $('#bottomNav').hidden = true;
         showAuthMessage('Sesi Anda berakhir. Silakan masuk kembali.');
       }
     }
@@ -2581,6 +2583,7 @@ function setAuthMode(mode) {
 function showAuth() {
   document.body.classList.add('auth-required');
   if ($('#authScreen')) $('#authScreen').hidden = false;
+  if ($('#bottomNav')) $('#bottomNav').hidden = true;
 }
 
 // Multi-Account & Fast Switcher System (like Instagram / Google)
@@ -2805,6 +2808,7 @@ async function enterApp(user, shouldRefresh = true) {
   const isAdmin = user.role?.toLowerCase() === 'admin';
   document.body.classList.remove('auth-required');
   if ($('#authScreen')) $('#authScreen').hidden = true;
+  if ($('#bottomNav')) $('#bottomNav').hidden = false;
   if ($('#currentUserName')) $('#currentUserName').textContent = `${user.name} · ${isAdmin ? 'Admin' : 'Pengguna'}`;
   if ($('#welcomeGreeting')?.firstChild) $('#welcomeGreeting').firstChild.textContent = `Selamat datang, ${user.name}! `;
   if ($('.profile strong')) $('.profile strong').textContent = user.name;
@@ -3035,6 +3039,7 @@ async function logout(event) {
     document.documentElement.classList.remove('has-session');
     document.body.classList.add('auth-required');
     if ($('#authScreen')) $('#authScreen').hidden = false;
+    if ($('#bottomNav')) $('#bottomNav').hidden = true;
     history.pushState(null, '', '/');
     setAuthMode('login');
     toast('Anda sudah keluar.');
@@ -3045,6 +3050,7 @@ async function logout(event) {
     document.documentElement.classList.remove('has-session');
     document.body.classList.add('auth-required');
     if ($('#authScreen')) $('#authScreen').hidden = false;
+    if ($('#bottomNav')) $('#bottomNav').hidden = true;
     history.pushState(null, '', '/');
     toast(`Keluar: ${error.message}`);
   } finally {

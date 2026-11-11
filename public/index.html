@@ -124,8 +124,8 @@
     </div>
     <p id="authMessage" class="auth-message" role="alert"></p>
     <form id="authForm" class="auth-form">
-      <label id="authNameWrap" hidden><span>Nama Lengkap</span><input name="name" autocomplete="name" placeholder="Masukkan nama lengkap"></label>
-      <label id="authEmailLabel"><span>Email atau Nama Pengguna</span><input name="email" autocomplete="username" required placeholder="nama@email.com atau nama akun"></label>
+      <label id="authNameWrap" hidden><span>Nama Lengkap</span><input name="name" type="text" autocomplete="name" placeholder="Masukkan nama lengkap"></label>
+      <label id="authEmailLabel"><span>Email atau Nama Pengguna</span><input name="email" type="text" autocomplete="username" required placeholder="nama@email.com atau nama akun"></label>
       <label>
         <span>Kata sandi</span>
         <input name="password" type="password" autocomplete="current-password" required minlength="8" placeholder="Minimal 8 karakter">
@@ -159,7 +159,7 @@
     </div>
     <form id="adminSetupForm" class="auth-form setup-form" hidden>
       <div class="setup-note">Kode setup ditampilkan di Terminal saat server dijalankan pertama kali.</div>
-      <label>Kode setup admin<input name="token" required autocomplete="off"></label>
+      <label>Kode setup admin<input name="token" type="text" required autocomplete="off"></label>
       <label>Nama administrator<input name="name" required autocomplete="name"></label>
       <label>Email administrator<input name="email" type="email" required autocomplete="email"></label>
       <label>Kata sandi admin<input name="password" type="password" required minlength="10" autocomplete="new-password" placeholder="Minimal 10 karakter"></label>
@@ -1099,7 +1099,7 @@
 </main>
 
 <!-- Mobile Bottom Navigation Bar (iOS & Android) -->
-<nav class="bottom-nav" id="bottomNav" aria-label="Navigasi Bawah Mobile">
+<nav class="bottom-nav" id="bottomNav" aria-label="Navigasi Bawah Mobile" hidden>
   <a href="/overview" data-page="overview" class="bottom-nav-item active">
     <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>
     <span>Beranda</span>
