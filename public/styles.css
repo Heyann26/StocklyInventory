@@ -370,6 +370,67 @@ svg {
 .page { display: none; }
 .page.active-page { display: block; }
 
+/* Instant Zero-Flicker Route Hydration on Reload */
+html[data-page-route="reports"] #page-reports,
+html[data-page-route="products"] #page-products,
+html[data-page-route="sessions"] #page-sessions,
+html[data-page-route="profile"] #page-profile,
+html[data-page-route="feedback"] #page-feedback,
+html[data-page-route="admin"] #page-admin,
+html[data-page-route="settings"] #page-settings,
+html[data-page-route="overview"] #page-overview,
+html:not([data-page-route]) #page-overview {
+  display: block;
+}
+
+html[data-page-route]:not([data-page-route="overview"]) #page-overview:not(.active-page) {
+  display: none !important;
+}
+html[data-page-route]:not([data-page-route="reports"]) #page-reports:not(.active-page) {
+  display: none !important;
+}
+html[data-page-route]:not([data-page-route="products"]) #page-products:not(.active-page) {
+  display: none !important;
+}
+html[data-page-route]:not([data-page-route="sessions"]) #page-sessions:not(.active-page) {
+  display: none !important;
+}
+html[data-page-route]:not([data-page-route="profile"]) #page-profile:not(.active-page) {
+  display: none !important;
+}
+html[data-page-route]:not([data-page-route="feedback"]) #page-feedback:not(.active-page) {
+  display: none !important;
+}
+html[data-page-route]:not([data-page-route="admin"]) #page-admin:not(.active-page) {
+  display: none !important;
+}
+html[data-page-route]:not([data-page-route="settings"]) #page-settings:not(.active-page) {
+  display: none !important;
+}
+
+/* Immediate navigation active states before JS parses */
+html[data-page-route="reports"] .bottom-nav-item[data-page="reports"],
+html[data-page-route="products"] .bottom-nav-item[data-page="products"],
+html[data-page-route="sessions"] .bottom-nav-item[data-page="sessions"],
+html[data-page-route="overview"] .bottom-nav-item[data-page="overview"],
+html[data-page-route="reports"] .nav-link[data-page="reports"],
+html[data-page-route="products"] .nav-link[data-page="products"],
+html[data-page-route="sessions"] .nav-link[data-page="sessions"],
+html[data-page-route="profile"] .nav-link[data-page="profile"],
+html[data-page-route="feedback"] .nav-link[data-page="feedback"],
+html[data-page-route="admin"] .nav-link[data-page="admin"],
+html[data-page-route="settings"] .nav-link[data-page="settings"],
+html[data-page-route="overview"] .nav-link[data-page="overview"] {
+  color: var(--primary) !important;
+}
+
+html[data-page-route="reports"] .bottom-nav-item[data-page="reports"] svg,
+html[data-page-route="products"] .bottom-nav-item[data-page="products"] svg,
+html[data-page-route="sessions"] .bottom-nav-item[data-page="sessions"] svg,
+html[data-page-route="overview"] .bottom-nav-item[data-page="overview"] svg {
+  stroke-width: 2.2 !important;
+}
+
 .page-heading {
   display: flex;
   align-items: flex-end;
@@ -1471,18 +1532,23 @@ button, a, select, input {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: 2.5px;
     font-size: 10px;
     font-weight: 600;
     color: #64748b;
     background: transparent;
     border: 0;
     text-decoration: none;
-    padding: 4px 0;
+    padding: 4px 1px;
     cursor: pointer;
     transition: color 0.15s;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    letter-spacing: -0.015em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
   }
   .bottom-nav-item svg {
     width: 20px;

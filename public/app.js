@@ -824,7 +824,7 @@ async function refresh() {
   render();
 }
 
-const pages = { overview: 'Ringkasan', products: 'Data Produk', sessions: 'Stock Opname', reports: 'Laporan', profile: 'Profil Toko & Usaha', feedback: 'Kritik & Saran', admin: 'Admin & Monitoring', settings: 'Settings' };
+const pages = { overview: 'Dashboard', products: 'Inventory', sessions: 'Stock Opname', reports: 'Reports', profile: 'Profil', feedback: 'Feedback', admin: 'Admin', settings: 'Settings' };
 
 function toggleSidebar(forceState) {
   const sidebar = $('#sidebar');
@@ -843,8 +843,9 @@ function getCurrentPage() {
   return 'overview';
 }
 
-function go(page) {
+function go(page, isInitial = false) {
   if (!pages[page] || (page === 'admin' && currentUser?.role?.toLowerCase() !== 'admin')) return;
+  document.documentElement.setAttribute('data-page-route', page);
   $$('.page').forEach(p => p.classList.toggle('active-page', p.id === `page-${page}`));
   $$('.nav-link[data-page]').forEach(a => a.classList.toggle('active', a.dataset.page === page));
   $$('.bottom-nav-item[data-page]').forEach(a => a.classList.toggle('active', a.dataset.page === page));
@@ -854,7 +855,9 @@ function go(page) {
   if (location.pathname !== targetPath || location.hash) {
     history.pushState(null, '', targetPath);
   }
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (!isInitial) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
   if (page === 'admin') loadAdmin();
   if (page === 'feedback') loadMyFeedback();
   if (page === 'settings') refreshPushState();
@@ -2903,7 +2906,7 @@ async function enterApp(user, shouldRefresh = true) {
 
   // Preserve current active route on reload/enter (clean URLs without #)
   const targetPage = getCurrentPage();
-  go(targetPage === 'admin' && !isAdmin ? 'overview' : targetPage);
+  go(targetPage === 'admin' && !isAdmin ? 'overview' : targetPage, true);
 
   if (shouldRefresh) {
     await refresh();
