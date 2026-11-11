@@ -29,6 +29,13 @@ try {
     document.body.classList.remove('auth-required');
     if ($('#authScreen')) $('#authScreen').hidden = true;
     if ($('#bottomNav')) $('#bottomNav').hidden = false;
+    const earlyInitials = (currentUser.name || '').split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase();
+    if (earlyInitials) {
+      if ($('#topPillAvatar')) $('#topPillAvatar').textContent = earlyInitials;
+      if ($('#sidebarAvatar')) $('#sidebarAvatar').textContent = earlyInitials;
+      if ($('.avatar')) $('.avatar').textContent = earlyInitials;
+      if ($('.top-avatar')) $('.top-avatar').textContent = earlyInitials;
+    }
   }
 } catch (e) {}
 

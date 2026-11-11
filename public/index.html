@@ -87,11 +87,22 @@
   </script>
   <link rel="stylesheet" href="/styles.css">
   <script>
-    // Early session & route hydration check to prevent flash of auth screen and route bounce on refresh
+    // Early session, user profile, & route hydration check to prevent flash of auth screen and route bounce on refresh
     (function() {
       try {
-        if (localStorage.getItem('stokly_token') && localStorage.getItem('stokly_user')) {
+        var token = localStorage.getItem('stokly_token');
+        var userStr = localStorage.getItem('stokly_user');
+        if (token && userStr) {
           document.documentElement.classList.add('has-session');
+          var u = JSON.parse(userStr);
+          if (u && u.name) {
+            var inits = u.name.split(/\s+/).slice(0, 2).map(function(p) { return p[0]; }).join('').toUpperCase();
+            window.__initialUser = {
+              initials: inits,
+              name: u.name,
+              role: u.role === 'admin' ? 'Administrator' : (u.role || 'Pengguna')
+            };
+          }
         }
         var rawPath = location.pathname.replace(/^\/+|\/+$/g, '').split('/')[0] || location.hash.replace(/^#+/, '');
         var validPages = ['overview', 'products', 'sessions', 'reports', 'profile', 'feedback', 'admin', 'settings'];
@@ -109,6 +120,23 @@
   }
   (function() {
     try {
+      var u = window.__initialUser;
+      if (u) {
+        var pillAvatar = document.getElementById('topPillAvatar');
+        if (pillAvatar) pillAvatar.textContent = u.initials;
+        var sideAvatar = document.getElementById('sidebarAvatar');
+        if (sideAvatar) sideAvatar.textContent = u.initials;
+        var profAvatar = document.getElementById('profilePageAvatar');
+        if (profAvatar) profAvatar.textContent = u.initials;
+        var pillName = document.getElementById('topPillName');
+        if (pillName) pillName.textContent = u.name;
+        var sideName = document.getElementById('sidebarUserName');
+        if (sideName) sideName.textContent = u.name;
+        var pillRole = document.getElementById('topPillRole');
+        if (pillRole) pillRole.textContent = u.role;
+        var sideRole = document.getElementById('sidebarUserRole');
+        if (sideRole) sideRole.textContent = u.role;
+      }
       var page = window.__initialRoute || 'overview';
       var pageEl = document.getElementById('page-' + page);
       if (pageEl) pageEl.classList.add('active-page');
@@ -256,7 +284,7 @@
 
   <div class="sidebar-bottom">
     <div class="profile" id="sidebarProfileWrap" style="cursor: pointer;" title="Ganti atau Tambah Akun (Switch Akun)">
-      <div class="avatar" id="sidebarAvatar">ST</div>
+      <div class="avatar" id="sidebarAvatar"></div>
       <div class="profile-copy">
         <strong id="sidebarUserName">Pengguna</strong>
         <small id="sidebarUserRole">Akun aktif</small>
@@ -294,7 +322,7 @@
 
       <!-- Fast Account Switcher Pill (Instagram Style) -->
       <button type="button" class="account-pill-btn" id="btnOpenAccountSwitcher" title="Ganti atau Tambah Akun (Switch Akun)">
-        <div class="account-pill-avatar" id="topPillAvatar">F</div>
+        <div class="account-pill-avatar" id="topPillAvatar"></div>
         <div class="account-pill-text hidden sm:flex">
           <span class="account-pill-name" id="topPillName">Akun</span>
           <span class="account-pill-role" id="topPillRole">Administrator</span>
@@ -1061,7 +1089,7 @@
         <section class="panel bg-white border border-gray-200 rounded-lg p-4">
           <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider mb-3">Informasi Akun</h3>
           <div class="flex items-center gap-3 mb-3">
-            <div class="avatar" style="width:42px; height:42px; font-size:15px" id="profilePageAvatar">ST</div>
+            <div class="avatar" style="width:42px; height:42px; font-size:15px" id="profilePageAvatar"></div>
             <div>
               <strong class="block text-sm text-gray-900" id="profilePageName">—</strong>
               <span class="text-xs text-gray-500" id="profilePageEmail">—</span>
