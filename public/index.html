@@ -124,7 +124,18 @@
     </div>
     <p id="authMessage" class="auth-message" role="alert"></p>
     <form id="authForm" class="auth-form">
-      <label id="authNameWrap" hidden><span>Nama Lengkap</span><input name="name" type="text" autocomplete="name" placeholder="Masukkan nama lengkap"></label>
+      <div id="authNameWrap" class="auth-field-group" hidden>
+        <label for="authNameInput"><span>Nama Pengguna</span></label>
+        <div class="auth-input-box">
+          <input id="authNameInput" name="name" type="text" autocomplete="username" placeholder="Contoh: febriansyah atau toko_jaya">
+          <span id="authNameStatusIcon" class="auth-status-icon" aria-hidden="true"></span>
+        </div>
+        <div id="authNameFeedback" class="auth-name-feedback" role="alert" aria-live="polite"></div>
+        <div id="authNameSuggestions" class="auth-suggestions-wrap" hidden>
+          <span class="auth-suggestions-title">💡 Rekomendasi nama yang tersedia:</span>
+          <div id="authSuggestionsList" class="auth-suggestions-chips"></div>
+        </div>
+      </div>
       <label id="authEmailLabel"><span>Email atau Nama Pengguna</span><input name="email" type="text" autocomplete="username" required placeholder="nama@email.com atau nama akun"></label>
       <label>
         <span>Kata sandi</span>

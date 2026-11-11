@@ -63,7 +63,10 @@ async function api(url, options = {}) {
         showAuthMessage('Sesi Anda berakhir. Silakan masuk kembali.');
       }
     }
-    throw new Error(data?.error || 'Permintaan gagal.');
+    const err = new Error(data?.error || 'Permintaan gagal.');
+    err.data = data;
+    err.status = response.status;
+    throw err;
   }
   return data;
 }
@@ -2544,6 +2547,62 @@ function showAuthMessage(message) {
   $('#authMessage').textContent = message || '';
 }
 
+let checkUsernameTimer = null;
+
+async function checkUsername(raw) {
+  const name = String(raw || '').trim();
+  const feedback = $('#authNameFeedback');
+  const suggestionsWrap = $('#authNameSuggestions');
+  const suggestionsList = $('#authSuggestionsList');
+  const box = $('.auth-input-box');
+
+  if (!name || authMode !== 'register') {
+    if (feedback) feedback.innerHTML = '';
+    if (suggestionsWrap) suggestionsWrap.hidden = true;
+    box?.classList.remove('is-valid', 'is-invalid');
+    return true;
+  }
+
+  if (name.length < 3) {
+    if (feedback) feedback.innerHTML = '<span class="feedback-error">⚠️ Nama pengguna minimal 3 karakter.</span>';
+    if (suggestionsWrap) suggestionsWrap.hidden = true;
+    box?.classList.remove('is-valid');
+    box?.classList.add('is-invalid');
+    return false;
+  }
+
+  try {
+    const res = await api(`/api/auth/check-username?name=${encodeURIComponent(name)}`);
+    if (res.available) {
+      if (feedback) feedback.innerHTML = '<span class="feedback-success">✓ Nama pengguna tersedia</span>';
+      if (suggestionsWrap) suggestionsWrap.hidden = true;
+      box?.classList.remove('is-invalid');
+      box?.classList.add('is-valid');
+      return true;
+    } else {
+      box?.classList.remove('is-valid');
+      box?.classList.add('is-invalid');
+      if (feedback) {
+        feedback.innerHTML = '<span class="feedback-error">⚠️ Nama pengguna sudah dipakai</span>';
+      }
+      if (res.suggestions && res.suggestions.length > 0) {
+        if (suggestionsList) {
+          suggestionsList.innerHTML = res.suggestions.map(s => 
+            `<button type="button" class="suggestion-chip" data-name="${s}">+ ${s}</button>`
+          ).join('');
+        }
+        if (suggestionsWrap) suggestionsWrap.hidden = false;
+      } else {
+        if (suggestionsWrap) suggestionsWrap.hidden = true;
+      }
+      return false;
+    }
+  } catch (e) {
+    console.warn('Check username failed:', e);
+    return true;
+  }
+}
+
 function setAuthMode(mode) {
   authMode = mode;
   const isForgot = mode === 'forgot';
@@ -2566,14 +2625,20 @@ function setAuthMode(mode) {
       const input = $('#authNameWrap input');
       if (input) {
         input.required = registration;
-        input.autocomplete = registration ? 'name' : 'off';
+        input.autocomplete = registration ? 'username' : 'off';
       }
+      const feedback = $('#authNameFeedback');
+      const suggestionsWrap = $('#authNameSuggestions');
+      const box = $('.auth-input-box');
+      if (feedback) feedback.innerHTML = '';
+      if (suggestionsWrap) suggestionsWrap.hidden = true;
+      box?.classList.remove('is-valid', 'is-invalid');
     }
     if ($('#authTitle')) $('#authTitle').textContent = registration ? 'Buat Akun Stockly' : 'Selamat datang kembali';
     if ($('#authSubtitle')) $('#authSubtitle').textContent = registration ? 'Daftar untuk mulai mengelola stok gudang.' : 'Masuk ke akun untuk melanjutkan ke dashboard stok.';
     if ($('#authSubmit')) $('#authSubmit').textContent = registration ? 'Buat Akun Baru' : 'Masuk ke Dashboard';
-    if ($('#authEmailLabel span')) $('#authEmailLabel span').textContent = registration ? 'Email' : 'Email atau Nama Pengguna';
-    if ($('#authEmailLabel input')) $('#authEmailLabel input').placeholder = registration ? 'nama@email.com' : 'nama@email.com atau nama akun';
+    if ($('#authEmailLabel span')) $('#authEmailLabel span').textContent = registration ? 'Alamat Email (Gmail / Email Akun)' : 'Email atau Nama Pengguna';
+    if ($('#authEmailLabel input')) $('#authEmailLabel input').placeholder = registration ? 'nama@gmail.com' : 'nama@email.com atau nama akun';
     if ($('#forgotPasswordWrap')) $('#forgotPasswordWrap').hidden = registration;
     $$('[data-auth-mode]').forEach(tab => tab.classList.toggle('selected', tab.dataset.authMode === mode));
   }
@@ -2992,12 +3057,38 @@ $('#btnSubmitNewPassword')?.addEventListener('click', async () => {
   }
 });
 
+$('#authSuggestionsList')?.addEventListener('click', e => {
+  const btn = e.target.closest('.suggestion-chip');
+  if (!btn) return;
+  const chosenName = btn.dataset.name;
+  const nameInput = $('#authNameInput');
+  if (nameInput && chosenName) {
+    nameInput.value = chosenName;
+    nameInput.focus();
+    checkUsername(chosenName);
+  }
+});
+
+$('#authNameInput')?.addEventListener('input', e => {
+  clearTimeout(checkUsernameTimer);
+  checkUsernameTimer = setTimeout(() => {
+    checkUsername(e.target.value);
+  }, 250);
+});
+
 $('#authForm').addEventListener('submit', async e => {
   e.preventDefault();
   const form = e.currentTarget, data = Object.fromEntries(new FormData(form));
   const endpoint = authMode === 'register' ? '/api/auth/register' : '/api/auth/login';
   if (authMode === 'login') {
     delete data.name;
+  } else {
+    const isAvail = await checkUsername(data.name);
+    if (!isAvail) {
+      showAuthMessage('Nama pengguna sudah dipakai. Silakan pilih salah satu opsi saran nama.');
+      $('#authNameInput')?.focus();
+      return;
+    }
   }
   try {
     const result = await api(endpoint, { method: 'POST', body: JSON.stringify(data) });
@@ -3007,6 +3098,21 @@ $('#authForm').addEventListener('submit', async e => {
     toast(`Selamat datang, ${result.user.name}.`);
   } catch (error) {
     showAuthMessage(error.message);
+    if (error.data?.suggestions && error.data.suggestions.length > 0) {
+      const suggestionsWrap = $('#authNameSuggestions');
+      const suggestionsList = $('#authSuggestionsList');
+      const feedback = $('#authNameFeedback');
+      const box = $('.auth-input-box');
+      box?.classList.remove('is-valid');
+      box?.classList.add('is-invalid');
+      if (feedback) feedback.innerHTML = '<span class="feedback-error">⚠️ Nama pengguna sudah dipakai</span>';
+      if (suggestionsList) {
+        suggestionsList.innerHTML = error.data.suggestions.map(s => 
+          `<button type="button" class="suggestion-chip" data-name="${s}">+ ${s}</button>`
+        ).join('');
+      }
+      if (suggestionsWrap) suggestionsWrap.hidden = false;
+    }
   }
 });
 

@@ -1157,6 +1157,108 @@ tbody tr:hover { background: #f8fafc; }
   -webkit-text-fill-color: #94a3b8 !important;
   opacity: 1 !important;
 }
+
+/* Username Availability Feedback & Suggestions */
+.auth-field-group {
+  display: grid;
+  gap: 5px;
+}
+.auth-input-box {
+  position: relative;
+  width: 100%;
+}
+.auth-status-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  font-size: 14px;
+  pointer-events: none;
+}
+.auth-input-box.is-valid .auth-status-icon {
+  display: block;
+}
+.auth-input-box.is-invalid .auth-status-icon {
+  display: block;
+}
+.auth-input-box.is-invalid input {
+  border-color: #ef4444 !important;
+  background-color: #fffaf0;
+}
+.auth-input-box.is-valid input {
+  border-color: #22c55e !important;
+}
+
+.auth-name-feedback {
+  font-size: 12px;
+  line-height: 1.4;
+  margin-top: 1px;
+}
+.auth-name-feedback .feedback-error {
+  color: #dc2626;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.auth-name-feedback .feedback-success {
+  color: #16a34a;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Suggestions Chips */
+.auth-suggestions-wrap {
+  margin-top: 5px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: fadeIn 0.2s ease;
+}
+.auth-suggestions-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #475569;
+}
+.auth-suggestions-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.suggestion-chip {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: var(--primary, #e53935);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 5px 11px;
+  border-radius: 9999px;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.suggestion-chip:hover {
+  background: #fef2f2;
+  border-color: var(--primary, #e53935);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(229, 57, 53, 0.12);
+}
+.suggestion-chip:active {
+  transform: translateY(0);
+}
 .auth-submit {
   width: 100%;
   height: 42px;
