@@ -1116,8 +1116,47 @@ tbody tr:hover { background: #f8fafc; }
 .auth-copy p {
   font-size: 13px;
   color: #64748b;
-  margin: 0 0 18px 0;
+  margin: 0 0 10px 0;
   line-height: 1.5;
+}
+.auth-creator-badge-wrap {
+  display: flex;
+  margin: 0 0 16px 0;
+}
+.auth-creator-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.auth-creator-badge .badge-icon {
+  width: 12px;
+  height: 12px;
+  color: #dc2626;
+  flex-shrink: 0;
+}
+.auth-creator-badge strong {
+  color: #0f172a;
+  font-weight: 600;
+}
+.auth-card-footer {
+  font-size: 11px;
+  color: #94a3b8;
+  text-align: center;
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+.auth-card-footer strong {
+  color: #64748b;
+  font-weight: 600;
 }
 .auth-tabs {
   display: flex;
